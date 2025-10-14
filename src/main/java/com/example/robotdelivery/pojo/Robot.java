@@ -9,11 +9,23 @@ public class Robot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="robot_id")
     private Integer robotId;
+
     @Column(name="robot_location")
     private Integer robotLcation;
+
     @Column(name="robot_status")
     private Integer robot_status;
 
+    //补充 robot_status 的 getter 和 setter（必须有）
+    public Integer getRobot_status() {
+        return robot_status;
+    }
+
+    public void setRobot_status(Integer robot_status) {
+        this.robot_status = robot_status;
+    }
+
+    // 已有的 getter/setter（保持不变）
     public Integer getRobotLcation() {
         return robotLcation;
     }
@@ -27,6 +39,5 @@ public class Robot {
     }
 
     public void setRobotId(Integer robotId) {
-        this.robotId = robotId;
-    }
+        this.robotId = robotId;}
 }
