@@ -2,6 +2,7 @@ package com.example.robotdelivery;
 
 
 import com.example.robotdelivery.pojo.Dish;
+import com.example.robotdelivery.pojo.Memory;
 import com.example.robotdelivery.service.MemoryManager;
 
 import java.util.Scanner;
@@ -11,9 +12,8 @@ public class MemoryTest {
         Scanner scanner = new Scanner(System.in);
 
         // 初始化总工作台空间
-        System.out.println("请设置总工作台空间大小：");
-        int totalSize = scanner.nextInt();
-        MemoryManager memoryManager = new MemoryManager(totalSize);
+        Memory memory=new Memory();
+        MemoryManager memoryManager = new MemoryManager(memory);
         memoryManager.printMemoryStatus();
 
         // 业务交互循环
