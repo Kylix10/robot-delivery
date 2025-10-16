@@ -56,6 +56,7 @@ public class Order {
         this.priority=priority+x;
     }
 
+
     public void setOrderId(Integer orderId) {
         this.orderId = orderId;
     }
@@ -76,9 +77,6 @@ public class Order {
         this.dish = dish;
     }
 
-    public Integer getPriority() {
-        return priority;
-    }
 
     public void setPriority(Integer priority) {
         this.priority = priority;
@@ -86,10 +84,6 @@ public class Order {
 
     public LocalDateTime getCreateTime() {
         return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
     }
 
     public LocalDateTime getCompleteTime() {

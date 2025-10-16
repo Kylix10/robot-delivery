@@ -22,9 +22,9 @@ public class RobotDto {
         RobotDto dto = new RobotDto();
         dto.setRobotId(robot.getRobotId());
         dto.setRobotLocation(robot.getRobotLcation());
-        dto.setRobotStatus(robot.getRobot_status());
+        dto.setRobotStatus(robot.getRobotStatus());
         // 设置状态描述
-        dto.setRobotStatusDesc(getStatusDescription(robot.getRobot_status()));
+        dto.setRobotStatusDesc(getStatusDescription(robot.getRobotStatus()));
         return dto;
     }
 
