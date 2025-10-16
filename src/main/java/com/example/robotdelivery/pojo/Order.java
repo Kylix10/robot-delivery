@@ -56,6 +56,13 @@ public class Order {
         this.priority=priority+x;
     }
 
+    public Integer getPriority() {
+        return priority;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
 
     public void setOrderId(Integer orderId) {
         this.orderId = orderId;

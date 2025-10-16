@@ -24,9 +24,9 @@ public class RobotVO {
         // 修复原代码中的拼写错误（robotLcation → robotLocation）
         vo.setRobotLocation(robot.getRobotLcation());
         // 建议实体类属性名遵循驼峰命名法（robot_status → robotStatus），此处暂时保持兼容
-        vo.setRobotStatus(robot.getRobot_status());
+        vo.setRobotStatus(robot.getRobotStatus());
         // 设置状态描述
-        vo.setRobotStatusDesc(getStatusDescription(robot.getRobot_status()));
+        vo.setRobotStatusDesc(getStatusDescription(robot.getRobotStatus()));
         return vo;
     }
 
