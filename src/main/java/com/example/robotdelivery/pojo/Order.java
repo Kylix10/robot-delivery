@@ -83,10 +83,6 @@ public class Order {
         return createTime;
     }
 
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
     public LocalDateTime getCompleteTime() {
         return completeTime;
     }

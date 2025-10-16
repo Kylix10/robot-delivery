@@ -29,7 +29,7 @@ public class MemoryTest {
 
                 Dish dish = new Dish();
                 dish.setDishId(dishId);
-                dish.setDishSpace(dishSpace);
+                dish.setRequiredSpace(dishSpace);
 
                 memoryManager.allocateForDish(dish);
             } else if (choice == 2) {

@@ -47,7 +47,7 @@ public class BankerAlgorithm {
             Tools copy = new Tools();
             copy.setToolId(tool.getToolId());
             copy.setToolType(tool.getToolType());
-            copy.setStatus(tool.getStatus());
+            copy.setToolStatus(tool.getToolStatus());
             copy.setOccupiedByRobotId(tool.getOccupiedByRobotId());
             return copy;
         }).collect(Collectors.toList());
@@ -72,13 +72,13 @@ public class BankerAlgorithm {
         // 模拟分配烤箱（操作工具副本）
         if (dish.getNeedOven()) {
             List<Tools> freeOvens = toolSnapshots.stream()
-                    .filter(t -> t.getToolType() == Tools.ToolType.OVEN && t.getStatus() == Tools.STATUS_FREE)
+                    .filter(t -> t.getToolType() == Tools.ToolType.OVEN && t.getToolStatus() == Tools.STATUS_FREE)
                     .collect(Collectors.toList());
             System.out.println("可用烤箱数量：" + freeOvens.size());
 
             if (!freeOvens.isEmpty()) {
                 Tools oven = freeOvens.get(0);
-                oven.setStatus(Tools.STATUS_OCCUPIED);
+                oven.setToolStatus(Tools.STATUS_OCCUPIED);
                 oven.setOccupiedByRobotId(robotSnapshot.getRobotId());
                 robotSnapshot.setOccupiedOven(oven);
                 System.out.println("机器人" + robotSnapshot.getRobotId() + "成功分配烤箱" + oven.getToolId());
@@ -90,13 +90,13 @@ public class BankerAlgorithm {
         // 模拟分配煎锅（操作工具副本）
         if (dish.getNeedFryPan()) {
             List<Tools> freeFryPans = toolSnapshots.stream()
-                    .filter(t -> t.getToolType() == Tools.ToolType.FRY_PAN && t.getStatus() == Tools.STATUS_FREE)
+                    .filter(t -> t.getToolType() == Tools.ToolType.FRY_PAN && t.getToolStatus() == Tools.STATUS_FREE)
                     .collect(Collectors.toList());
             System.out.println("可用煎锅数量：" + freeFryPans.size());
 
             if (!freeFryPans.isEmpty()) {
                 Tools fryPan = freeFryPans.get(0);
-                fryPan.setStatus(Tools.STATUS_OCCUPIED);
+                fryPan.setToolStatus(Tools.STATUS_OCCUPIED);
                 fryPan.setOccupiedByRobotId(robotSnapshot.getRobotId());
                 robotSnapshot.setOccupiedFryPan(fryPan);
                 System.out.println("机器人" + robotSnapshot.getRobotId() + "成功分配煎锅" + fryPan.getToolId());
@@ -164,8 +164,8 @@ public class BankerAlgorithm {
         Dish dish = order.getDish();
 
         // 检查工具是否齐全（真实机器人用真实工具，模拟机器人用副本工具）
-        boolean hasOven = !dish.getNeedOven() || (robot.getOccupiedOven() != null && robot.getOccupiedOven().getStatus() == Tools.STATUS_OCCUPIED);
-        boolean hasFryPan = !dish.getNeedFryPan() || (robot.getOccupiedFryPan() != null && robot.getOccupiedFryPan().getStatus() == Tools.STATUS_OCCUPIED);
+        boolean hasOven = !dish.getNeedOven() || (robot.getOccupiedOven() != null && robot.getOccupiedOven().getToolStatus() == Tools.STATUS_OCCUPIED);
+        boolean hasFryPan = !dish.getNeedFryPan() || (robot.getOccupiedFryPan() != null && robot.getOccupiedFryPan().getToolStatus() == Tools.STATUS_OCCUPIED);
         // 检查工作区是否满足（真实机器人用真实数据快照，模拟机器人用模拟快照）
         boolean hasWorkbench = memorySnapshot.getOccupiedByRobotId() != null && memorySnapshot.getOccupiedByRobotId().equals(robot.getRobotId());
 

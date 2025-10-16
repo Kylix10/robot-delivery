@@ -8,12 +8,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OrderService implements IOrderService{
 
     @Autowired
     OrderMapper orderMapper;
+
+    // 保存订单
+    @Transactional
+    public Order saveOrder(Order order) {
+        // 可以添加业务逻辑，如设置默认值、验证等
+        if (order.getCreateTime() == null) {
+            order.setCreateTime(LocalDateTime.now());
+        }
+        return orderMapper.save(order); // 调用OrderMapper的save方法
+    }
 
     @Override
     public void add(OrderDto order) {
@@ -36,4 +46,7 @@ public class OrderService implements IOrderService{
         // 查询最近的N条订单
         return orderMapper.findTopByOrderByCreateTimeDesc(limit);
     }
+
+
+
 }

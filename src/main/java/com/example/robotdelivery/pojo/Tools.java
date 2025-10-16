@@ -13,7 +13,7 @@ public class Tools {
 
     private Integer toolId;
     private ToolType toolType; // 工具类型
-    private Integer status; // 0=空闲，1=占用（文档“资源状态管理”）
+    private Integer toolStatus; // 0=空闲，1=占用（文档“资源状态管理”）
     private Integer occupiedByRobotId; // 绑定机器人（核心单元，非订单）
 
     // 常量：状态定义
@@ -39,12 +39,12 @@ public class Tools {
         this.toolType = toolType;
     }
 
-    public Integer getStatus() {
-        return status;
+    public Integer getToolStatus() {
+        return toolStatus;
     }
 
-    public void setStatus(Integer status) {
-        this.status = status;
+    public void setToolStatus(Integer toolStatus) {
+        this.toolStatus = toolStatus;
     }
 
     public Integer getOccupiedByRobotId() {

@@ -54,10 +54,10 @@ public class RobotService implements IRobotService {
         return robotRepository.saveAll(robots);
     }
 
-    // 查询所有机器人
-    public List<Robot> getAllRobots() {
-        return robotRepository.findAll();
-    }
+//    // 查询所有机器人
+//    public List<Robot> getAllRobots() {
+//        return robotRepository.findAll();
+//    }
 
     // 注意：这里不提供公开的更新和删除方法
     // 后端内部修改可以通过其他方式实现，如：
