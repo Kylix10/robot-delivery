@@ -50,6 +50,13 @@ public class Order {
         return "Order{" +
                 "orderId=" + orderId +
                 ", orderName='" + orderName + '\'' +
+                ", dish=" + dish +
+                ", priority=" + priority +
+                ", createTime=" + createTime +
                 '}';
+    }
+
+    public void setCreateTime(LocalDateTime now) {
+        this.createTime=now;
     }
 }
