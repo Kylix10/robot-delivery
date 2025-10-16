@@ -40,6 +40,14 @@ public class Order {
     public Integer getOrderId() {
         return orderId;
     }
+    public Integer getPriority()
+    {
+        return priority;
+    }
+    public void updatePriority(int x)
+    {
+        this.priority=priority+x;
+    }
 
     public void setOrderId(Integer orderId) {
         this.orderId = orderId;
