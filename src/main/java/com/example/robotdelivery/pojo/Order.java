@@ -50,15 +50,19 @@ public class Order {
     public Integer getOrderId() {
         return orderId;
     }
-    public Integer getPriority()
-    {
-        return priority;
-    }
+
     public void updatePriority(int x)
     {
         this.priority=priority+x;
     }
 
+    public Integer getPriority() {
+        return priority;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
 
     public void setOrderId(Integer orderId) {
         this.orderId = orderId;

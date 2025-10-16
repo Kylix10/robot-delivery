@@ -39,7 +39,7 @@ public class MemoryTest {
             }
 
             int dishId = dish.getDishId();
-            int dishSpace = dish.getDishSpace();
+            int dishSpace = dish.getRequiredSpace();
             System.out.println("\n处理订单：" + order.getOrderName() + "（关联菜品ID：" + dishId + "，所需空间：" + dishSpace + "）");
 
             // 调用 MemoryManager 分配工作台
@@ -108,13 +108,13 @@ public class MemoryTest {
         Dish dish1 = new Dish();
         dish1.setDishId(101);
         dish1.setDishName("宫保鸡丁");
-        dish1.setDishSpace(20);
+        dish1.setRequiredSpace(20);
 
         // 模拟菜品2：ID=102，所需空间=30
         Dish dish2 = new Dish();
         dish2.setDishId(102);
         dish2.setDishName("鱼香肉丝");
-        dish2.setDishSpace(30);
+        dish2.setRequiredSpace(30);
 
         // 模拟订单1：关联菜品1
         Order order1 = new Order();
