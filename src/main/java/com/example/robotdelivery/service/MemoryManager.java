@@ -284,4 +284,12 @@ public class MemoryManager {
     public Memory getMemory() {
         return memory;
     }
+
+    /**
+     * 【新增公共方法】获取当前所有分区列表
+     * @return 当前分区列表
+     */
+    public List<Partition> getPartitions() {
+        return partitions;
+    }
 }

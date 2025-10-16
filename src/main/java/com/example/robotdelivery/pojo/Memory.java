@@ -1,9 +1,12 @@
 package com.example.robotdelivery.pojo;
 
+import org.springframework.stereotype.Component;
+
 /**
  * 工作区资源（总空间100）
  * 对应文档实验三“动态分区算法”，模拟内存分配
  */
+@Component
 public class Memory {
 
     private Integer workbenchId = 1;
