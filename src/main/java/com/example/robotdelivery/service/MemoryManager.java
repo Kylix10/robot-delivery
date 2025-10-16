@@ -43,7 +43,7 @@ public class MemoryManager {
         return false;
     }
 
-    // 【修改】计算总可用空间，并更新 Memory 的 usedSpace
+    // 计算总可用空间，并更新 Memory 的 usedSpace
     private int calculateTotalFreeSpace() {
         int usedSpace = 0;
         for (Partition part : partitions) {
