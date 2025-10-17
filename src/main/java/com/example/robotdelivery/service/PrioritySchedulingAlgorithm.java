@@ -1,53 +1,56 @@
 package com.example.robotdelivery.service;
 
 import com.example.robotdelivery.pojo.Order;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
-//2025.10.16 17：00 实现了优先级排序，提供了优先级更新的方法但未具体实现，需要讨论计时器相关问题
-
-
-
-// 优先级排序
+/**
+ * 优先级调度算法
+ * 对 ResourceManagerThread 的 orderWaitQueue 进行优先级排序
+ */
 public class PrioritySchedulingAlgorithm
 {
+    private final BlockingQueue<Order> orderQueue; // 阻塞队列引用
+    private final ReentrantLock lock = new ReentrantLock(); // 队列锁
 
-    private static final List<Order> globalOrderQueue = new ArrayList<>(); // 全局订单队列
-    private static final ReentrantLock lock = new ReentrantLock();         // 队列锁
+    public PrioritySchedulingAlgorithm(BlockingQueue<Order> orderQueue)
+    {
+        this.orderQueue = orderQueue;
+    }
 
     /**
-     * 将新的订单列表加入全局队列，并按优先级排序
-     * @param newOrders 新生成的订单列表
+     * 对队列进行优先级排序（降序），同优先级保持 FIFO
      */
-    public static void addAndSortOrders(List<Order> newOrders)
+    public void sortQueue()
     {
-        if (newOrders == null || newOrders.isEmpty())
-        {
-            return;
-        }
-
         lock.lock();
         try
         {
-            globalOrderQueue.addAll(newOrders); // 加入全局队列
+            if (orderQueue.isEmpty()) return;
 
-            // 更新所有订单优先级
-            for (Order order : globalOrderQueue)
+            // 1. 取出所有元素到临时列表
+            List<Order> tempList = new ArrayList<>();
+            orderQueue.drainTo(tempList);
+            /*
+            // 2. 更新优先级（这里可使用简单示例，实际可用计时器逻辑）
+            for (Order order : tempList)
             {
-                int x;
-                x = 0; // 暂时赋值为0，计算逻辑可用计时器实现
-                // x = (int)((System.currentTimeMillis() - order.getCreateTime().getTime()) / 60000); // 每分钟增加一次优先级，暂时注释
+                int x = 0; // 暂时赋值0
                 order.updatePriority(x);
             }
-
-            // 按优先级降序排序，同优先级保持 FIFO（orderId 升序）
-            Collections.sort(globalOrderQueue, Comparator
+            */
+            // 3. 按优先级降序，同优先级保持FIFO（orderId升序）
+            Collections.sort(tempList, Comparator
                     .comparing(Order::getPriority).reversed()
                     .thenComparing(Order::getOrderId));
+
+            // 4. 放回队列
+            orderQueue.addAll(tempList);
         }
         finally
         {
@@ -56,34 +59,25 @@ public class PrioritySchedulingAlgorithm
     }
 
     /**
-     * 获取当前全局订单队列（线程安全，返回原始队列）
-     * @return 订单队列
+     * 打印当前队列状态（优先级降序）
      */
-    public static List<Order> getGlobalOrderQueue()
+    public void printQueue()
     {
         lock.lock();
         try
         {
-            return globalOrderQueue; // 返回原始队列，允许修改
-        }
-        finally
-        {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * 打印全局订单队列，用于调试
-     */
-    public static void printGlobalOrderQueue()
-    {
-        lock.lock();
-        try
-        {
-            System.out.println("===== 全局订单队列（优先级降序） =====");
-            for (Order order : globalOrderQueue)
+            if (orderQueue.isEmpty())
             {
-                System.out.println(order.toString());
+                System.out.println("===== 队列为空 =====");
+                return;
+            }
+            System.out.println("===== 当前订单队列（优先级降序） =====");
+            for (Order order : orderQueue)
+            {
+                String info = "订单ID: " + order.getOrderId() +
+                        ", 菜品: " + (order.getDish() != null ? order.getDish().getDishName() : "无") +
+                        ", 优先级: " + order.getPriority();
+                System.out.println(info);
             }
             System.out.println("=====================================");
         }
@@ -94,14 +88,14 @@ public class PrioritySchedulingAlgorithm
     }
 
     /**
-     * 清空全局队列（测试或重置用）
+     * 清空队列（测试或重置用）
      */
-    public static void clearQueue()
+    public void clearQueue()
     {
         lock.lock();
         try
         {
-            globalOrderQueue.clear();
+            orderQueue.clear();
         }
         finally
         {
