@@ -58,6 +58,7 @@ public class ResourceManagerTest {
             // 随机选一种菜品
             Dish randomDish = dishList.get(random.nextInt(dishList.size()));
             order.setDish(randomDish);
+            order.setPriority(random.nextInt(dishList.size()));
 
             orderList.add(order);
         }

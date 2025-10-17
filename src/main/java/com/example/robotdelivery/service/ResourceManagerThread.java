@@ -7,9 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 // 导入 MemoryManager
-// 注意: MemoryManager 需要您在项目中另外定义
-// import com.example.robotdelivery.service.MemoryManager;
-// 注意: PrioritySchedulingAlgorithm 需要您在项目中另外定义
+import com.example.robotdelivery.service.MemoryManager;
+
 import com.example.robotdelivery.service.PrioritySchedulingAlgorithm;
 
 import javax.annotation.PostConstruct;
@@ -73,6 +72,7 @@ public class ResourceManagerThread extends Thread {
         dishA.setDishId(1);
         dishB.setDishId(2);
         dishC.setDishId(3);
+
     }
     private List<Tools> initTools() {
         List<Tools> tools = new ArrayList<>();
