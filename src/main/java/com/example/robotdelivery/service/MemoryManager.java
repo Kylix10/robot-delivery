@@ -4,11 +4,13 @@ import com.example.robotdelivery.pojo.Dish;
 import com.example.robotdelivery.pojo.GlobalConstants;
 import com.example.robotdelivery.pojo.Partition;
 import com.example.robotdelivery.pojo.Memory; // 引入 Memory 类
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Comparator;
 
+@Service
 public class MemoryManager {
     private List<Partition> partitions;
     private final Memory memory; // 新增 Memory 属性
