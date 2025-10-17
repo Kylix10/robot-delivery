@@ -59,7 +59,7 @@ public class MemoryManager {
     // 最佳适应算法分配工作台（带总空间检查）
     public boolean allocateForDish(Dish dish) {
         int dishId = dish.getDishId();
-        int requiredSize = dish.getDishSpace();
+        int requiredSize = dish.getRequiredSpace();
         int totalWorkbenchSize = memory.getTotalSpace(); // 从 Memory 获取总空间
 
         // 校验1：菜肴已分配
@@ -123,7 +123,7 @@ public class MemoryManager {
 
     // 处理空间不足的情况
     private void handleInsufficientSpace(Dish dish) {
-        int requiredSize = dish.getDishSpace();
+        int requiredSize = dish.getRequiredSpace();
         int totalFreeSpace = calculateTotalFreeSpace(); // 通过此方法获取并更新了 Memory 的状态
         int totalWorkbenchSize = memory.getTotalSpace();
 
@@ -283,5 +283,13 @@ public class MemoryManager {
     // 【新增】获取 Memory 对象
     public Memory getMemory() {
         return memory;
+    }
+
+    /**
+     * 【新增公共方法】获取当前所有分区列表
+     * @return 当前分区列表
+     */
+    public List<Partition> getPartitions() {
+        return partitions;
     }
 }

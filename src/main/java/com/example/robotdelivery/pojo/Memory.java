@@ -1,52 +1,48 @@
 package com.example.robotdelivery.pojo;
 
+import org.springframework.stereotype.Component;
+
 /**
  * 工作区资源（总空间100）
  * 对应文档实验三“动态分区算法”，模拟内存分配
  */
+@Component
 public class Memory {
 
     private Integer workbenchId = 1;
-    private Integer totalSpace = 100; // 固定总空间（你设定的值）
-    private Integer usedSpace = 0; // 已用空间
-    private Integer freeSpace = 100; // 空闲空间（自动计算）
-    private Integer occupiedByRobotId; // 绑定机器人（核心单元）
+    private final Integer totalSpace = 100; // 总空间固定，无需修改，用final
+    private volatile Integer usedSpace = 0; // volatile保证多线程可见性
+    private volatile Integer occupiedByRobotId; // volatile保证可见性
 
-    // Getter 和 Setter 方法
+    // Getter 方法（无需同步，volatile已保证可见性）
     public Integer getWorkbenchId() {
         return workbenchId;
-    }
-
-    public void setWorkbenchId(Integer workbenchId) {
-        this.workbenchId = workbenchId;
     }
 
     public Integer getTotalSpace() {
         return totalSpace;
     }
 
-    public void setTotalSpace(Integer totalSpace) {
-        this.totalSpace = totalSpace;
-    }
-
     public Integer getUsedSpace() {
         return usedSpace;
-    }
-
-    public void setUsedSpace(Integer usedSpace) {
-        this.usedSpace = usedSpace;
-        this.freeSpace = this.totalSpace - usedSpace;
-    }
-
-    public Integer getFreeSpace() {
-        return freeSpace;
     }
 
     public Integer getOccupiedByRobotId() {
         return occupiedByRobotId;
     }
 
-    public void setOccupiedByRobotId(Integer occupiedByRobotId) {
+    // Setter 方法（synchronized保证原子性）
+    public synchronized void setUsedSpace(Integer usedSpace) {
+        this.usedSpace = Math.max(0, Math.min(usedSpace, totalSpace)); // 防止超界
+        // freeSpace 由 usedSpace 推导，无需单独维护字段
+    }
+
+    public synchronized void setOccupiedByRobotId(Integer occupiedByRobotId) {
         this.occupiedByRobotId = occupiedByRobotId;
+    }
+
+    // 计算空闲空间（基于 usedSpace，无需单独字段）
+    public synchronized Integer getFreeSpace() {
+        return totalSpace - usedSpace;
     }
 }
