@@ -1,64 +1,83 @@
 package com.example.robotdelivery.pojo;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
-// 标记这是一个JPA实体类，对应数据库中的表
 @Entity
-// 指定对应的数据库表名
-@Table(name = "dish")
+@Table(
+        name = "dish",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "dish_type")
+        }
+)
 public class Dish {
 
-    // 主键字段
     @Id
-    // 主键生成策略：自增（依赖数据库支持）
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    // 映射到数据库表中的字段名
     @Column(name = "dish_id", nullable = false)
     private Integer dishId;
 
-    // 菜品名称
     @Column(name = "dish_name", nullable = false, length = 100)
     private String dishName;
 
-    // 菜品所需食材（多对多关系）
-    // 实际项目中推荐使用中间表维护多对多关系
+    // ❌ 去掉 Enum，改为 String
+    @Column(name = "dish_type", nullable = false, unique = true, length = 50)
+    private String dishType;
 
-    @Column(name = "dish_ingredient")
-    private Integer ingredients;
+    @Column(name = "dish_space", nullable = false)
+    private Integer requiredSpace;
 
-    // 菜品所需空间
-    @Column(name = "dish_space")
-    private Integer dishSpace;
+    @Column(name = "need_oven", nullable = false)
+    private Boolean needOven;
 
-    // getter 和 setter 方法
-    public Integer getDishId() {
-        return dishId;
-    }
+    @Column(name = "need_fry_pan", nullable = false)
+    private Boolean needFryPan;
 
-    public void setDishId(Integer dishId) {
-        this.dishId = dishId;
-    }
+    @Column(name = "need_fry_pot", nullable = false)
+    private Boolean needFryPot;
 
-    public String getDishName() {
-        return dishName;
-    }
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
+    @JoinTable(
+            name = "dish_ingredient_mapping",
+            joinColumns = @JoinColumn(name = "dish_id"),
+            inverseJoinColumns = @JoinColumn(name = "ingredient_id")
+    )
+    private List<Ingredient> ingredients = new ArrayList<>();
 
-    public void setDishName(String dishName) {
+    public Dish() {}
+
+    // 可选：构造器初始化名字、类型和工具
+    public Dish(String dishName, String dishType, Boolean needOven, Boolean needFryPan, Boolean needFryPot) {
         this.dishName = dishName;
+        this.dishType = dishType;
+        this.needOven = needOven;
+        this.needFryPan = needFryPan;
+        this.needFryPot = needFryPot;
     }
 
+    // getters & setters
+    public Integer getDishId() { return dishId; }
+    public void setDishId(Integer dishId) { this.dishId = dishId; }
 
+    public String getDishName() { return dishName; }
+    public void setDishName(String dishName) { this.dishName = dishName; }
 
-    public void setIngredients(Integer ingredients) {
-        this.ingredients = ingredients;
-    }
+    public String getDishType() { return dishType; }
+    public void setDishType(String dishType) { this.dishType = dishType; }
 
-    public Integer getDishSpace() {
-        return dishSpace;
-    }
+    public Integer getRequiredSpace() { return requiredSpace; }
+    public void setRequiredSpace(Integer requiredSpace) { this.requiredSpace = requiredSpace; }
 
-    public void setDishSpace(Integer dishSpace) {
-        this.dishSpace = dishSpace;
-    }
+    public Boolean getNeedOven() { return needOven; }
+    public void setNeedOven(Boolean needOven) { this.needOven = needOven; }
+
+    public Boolean getNeedFryPan() { return needFryPan; }
+    public void setNeedFryPan(Boolean needFryPan) { this.needFryPan = needFryPan; }
+
+    public Boolean getNeedFryPot() { return needFryPot; }
+    public void setNeedFryPot(Boolean needFryPot) { this.needFryPot = needFryPot; }
+
+    public List<Ingredient> getIngredients() { return ingredients; }
+    public void setIngredients(List<Ingredient> ingredients) { this.ingredients = ingredients; }
 }

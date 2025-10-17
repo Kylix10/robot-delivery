@@ -1,49 +1,64 @@
 package com.example.robotdelivery.pojo;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
-
-@Table(name="tb_order")
 @Entity
+@Table(name="tb_order")
 public class Order {
+
+    public enum OrderStatus {
+        PENDING,
+        PROCESSING,
+        COMPLETED
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="order_id")
+    @Column(name="order_id", nullable = false)
     private Integer orderId;
+
     @Column(name="order_name")
     private String orderName;
-    // 定义外键关联
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "dish_id", referencedColumnName = "dish_id")
-    private Dish dish; // 这里使用 Dish 对象来关联，而不是直接用 String dishId
+    private Dish dish;
 
     @Column(name="priority")
     private Integer priority;
-    // 创建时间，指定列名，设置为不可为空
+
     @Column(name = "create_time", nullable = false)
     private LocalDateTime createTime;
 
-    // 完成时间，指定列名，可为空（因为订单可能还未完成）
     @Column(name = "complete_time")
     private LocalDateTime completeTime;
 
-    public String getOrderName() {
-        return orderName;
-    }
+    @Column(name = "order_status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus;
 
-    public void setOrderName(String orderName) {
-        this.orderName = orderName;
-    }
+    // ================= Getters / Setters =================
+    public Integer getOrderId() { return orderId; }
+    public void setOrderId(Integer orderId) { this.orderId = orderId; }
 
-    public Integer getOrderId() {
-        return orderId;
-    }
+    public String getOrderName() { return orderName; }
+    public void setOrderName(String orderName) { this.orderName = orderName; }
 
-    public void setOrderId(Integer orderId) {
-        this.orderId = orderId;
-    }
+    public Dish getDish() { return dish; }
+    public void setDish(Dish dish) { this.dish = dish; }
+
+    public Integer getPriority() { return priority; }
+    public void setPriority(Integer priority) { this.priority = priority; }
+
+    public LocalDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+
+    public LocalDateTime getCompleteTime() { return completeTime; }
+    public void setCompleteTime(LocalDateTime completeTime) { this.completeTime = completeTime; }
+
+    public OrderStatus getOrderStatus() { return orderStatus; }
+    public void setOrderStatus(OrderStatus orderStatus) { this.orderStatus = orderStatus; }
 
     @Override
     public String toString() {
