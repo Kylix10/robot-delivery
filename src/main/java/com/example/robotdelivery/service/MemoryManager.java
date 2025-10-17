@@ -62,11 +62,11 @@ public class MemoryManager {
         int requiredSize = dish.getRequiredSpace();
         int totalWorkbenchSize = memory.getTotalSpace(); // 从 Memory 获取总空间
 
-        // 校验1：菜肴已分配
-        if (isDishAllocated(dishId)) {
-            System.out.println("错误：菜肴ID " + dishId + " 已占用工作台，无法重复分配");
-            return false;
-        }
+//        // 校验1：菜肴已分配
+//        if (isDishAllocated(dishId)) {
+//            System.out.println("错误：菜肴ID " + dishId + " 已占用工作台，无法重复分配");
+//            return false;
+//        }
 
         // 校验2：需求空间是否超过总空间
         if (requiredSize > totalWorkbenchSize) {

@@ -6,6 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+// 导入 MemoryManager
+// 注意: MemoryManager 需要您在项目中另外定义
+// import com.example.robotdelivery.service.MemoryManager;
+// 注意: PrioritySchedulingAlgorithm 需要您在项目中另外定义
 import com.example.robotdelivery.service.PrioritySchedulingAlgorithm;
 
 import javax.annotation.PostConstruct;
@@ -23,22 +27,26 @@ public class ResourceManagerThread extends Thread {
     @Autowired
     BankerAlgorithm bankerAlgorithm;
 
-   // @Autowired
-    //RobotRepository robotRepository;
+    // 新增：工作台内存动态分配管理器
+    private final MemoryManager memoryManager;
+
+    // @Autowired
+    // RobotRepository robotRepository;
 
     // 新增：注入OrderService
     //@Autowired
     //private OrderService orderService;
 
-   // @Autowired
-    //private TransactionTemplate transactionTemplate;
+    // @Autowired
+    // private TransactionTemplate transactionTemplate;
 
     private final List<Tools> allTools = initTools();
-    //private List<Robot> allRobots;
+    // private List<Robot> allRobots;
     private final List<Robot> allRobots = initRobots();
     private final Memory workbench = new Memory();
     private final BlockingQueue<Order> orderWaitQueue = new LinkedBlockingQueue<>();
-    private final Object resourceLock = new Object();   //锁
+    private final Object resourceLock = new Object(); // 资源分配锁
+
     private Dish dishA;
     private Dish dishB;
     private Dish dishC;
@@ -47,13 +55,15 @@ public class ResourceManagerThread extends Thread {
     private static final long PRINT_INTERVAL = 500;
 
     public ResourceManagerThread() {
+        // 在构造器中初始化 MemoryManager，传入 Memory 对象
+        this.memoryManager = new MemoryManager(workbench);
     }
 
-//存数据库用
-//    @PostConstruct
-//    public void initRobots() {
-//        this.allRobots = initAndSaveRobots();
-//    }
+    // 存数据库用
+    // @PostConstruct
+    // public void initRobots() {
+    // this.allRobots = initAndSaveRobots();
+    // }
 
     private void initDishes() {
         dishA = new Dish(Dish.DishType.A);
@@ -64,43 +74,51 @@ public class ResourceManagerThread extends Thread {
         dishB.setDishId(2);
         dishC.setDishId(3);
     }
+    private List<Tools> initTools() {
+        List<Tools> tools = new ArrayList<>();
+        Tools oven1 = new Tools();
+        oven1.setToolId(1);
+        oven1.setToolType(Tools.ToolType.OVEN);
+        oven1.setToolStatus(Tools.STATUS_FREE);
+        tools.add(oven1);
 
-//    private void generateOrders() {
-//        initDishes();
-//
-//        List<Dish> dishes = Arrays.asList(dishA, dishB, dishC);
-//        Random random = new Random();
-//
-//        for (int i = 1; i <= 5; i++) {
-//            Order order = new Order();
-//            // 注意：不要手动设置orderId，由数据库自增生成（避免主键冲突）
-//             order.setOrderId(i); // 存数据库的时候注释掉这行，改用数据库自增
-//
-//            Dish randomDish = dishes.get(random.nextInt(3));
-//            order.setDish(randomDish);
-//            order.setOrderStatus(Order.OrderStatus.PENDING); // 初始状态：待处理
-//            order.setCreateTime(LocalDateTime.now());
-//
-//            try {
-//                // 关键：调用OrderService保存订单到数据库
-//                //Order savedOrder = orderService.saveOrder(order);
-//                // 将保存后的订单（含数据库生成的orderId）放入等待队列
-//                submitOrder(order);//参数变成saveOrder
-//                System.out.println("提交订单 " + i + "（菜品：" + randomDish.getDishName() +
-//                        "，需要烤箱：" + randomDish.getNeedOven() +
-//                        "，需要煎锅：" + randomDish.getNeedFryPan() +
-//                        "，所需空间：" + randomDish.getRequiredSpace() + "）");
-//
-//                Thread.sleep(500);
-//            } catch (InterruptedException e) {
-//                Thread.currentThread().interrupt();
-//            }
-//        }
-//    }
+        Tools oven2 = new Tools();
+        oven2.setToolId(2);
+        oven2.setToolType(Tools.ToolType.OVEN);
+        oven2.setToolStatus(Tools.STATUS_FREE);
+        tools.add(oven2);
 
+        Tools fryPan = new Tools();
+        fryPan.setToolId(3);
+        fryPan.setToolType(Tools.ToolType.FRY_PAN);
+        fryPan.setToolStatus(Tools.STATUS_FREE);
+        tools.add(fryPan);
+
+        Tools fryPan2 = new Tools();
+        fryPan2.setToolId(3);
+        fryPan2.setToolType(Tools.ToolType.FRY_PAN);
+        fryPan2.setToolStatus(Tools.STATUS_FREE);
+        tools.add(fryPan2);
+        return tools;
+    }
+
+    private List<Robot> initRobots() {
+        List<Robot> robots = new ArrayList<>();
+        Robot robot1 = new Robot();
+        robot1.setRobotId(1);
+        robot1.setRobotStatus(Robot.STATUS_FREE);
+        robots.add(robot1);
+
+        Robot robot2 = new Robot();
+        robot2.setRobotId(2);
+        robot2.setRobotStatus(Robot.STATUS_FREE);
+        robots.add(robot2);
+        return robots;
+    }
     @Override
     public void run() {
-        System.out.println("资源管理线程启动，初始资源：2烤箱+1煎锅+2机器人+工作区100空间");
+        System.out.println("资源管理线程启动，初始资源：2烤箱+1煎锅+2机器人+工作区" + workbench.getTotalSpace() + "空间");
+        memoryManager.printMemoryStatus(); // 打印初始工作台状态
 
         final long LOOP_DELAY = 1000;
 
@@ -120,6 +138,7 @@ public class ResourceManagerThread extends Thread {
                     continue;
                 }
 
+                // 银行家算法安全检查
                 boolean isSafe = bankerAlgorithm.isResourceSafe(
                         freeRobot,
                         order,
@@ -155,61 +174,6 @@ public class ResourceManagerThread extends Thread {
         }
     }
 
-    private List<Tools> initTools() {
-        List<Tools> tools = new ArrayList<>();
-        Tools oven1 = new Tools();
-        oven1.setToolId(1);
-        oven1.setToolType(Tools.ToolType.OVEN);
-        oven1.setToolStatus(Tools.STATUS_FREE);
-        tools.add(oven1);
-
-        Tools oven2 = new Tools();
-        oven2.setToolId(2);
-        oven2.setToolType(Tools.ToolType.OVEN);
-        oven2.setToolStatus(Tools.STATUS_FREE);
-        tools.add(oven2);
-
-        Tools fryPan = new Tools();
-        fryPan.setToolId(3);
-        fryPan.setToolType(Tools.ToolType.FRY_PAN);
-        fryPan.setToolStatus(Tools.STATUS_FREE);
-        tools.add(fryPan);
-        return tools;
-    }
-//存数据库用这个
-//    private List<Robot> initAndSaveRobots() {
-//        List<Robot> robots = new ArrayList<>();
-//        List<Robot> existingRobots = robotRepository.findAll();
-//        if (existingRobots.isEmpty()) {
-//            Robot robot1 = new Robot();
-//            robot1.setRobotId(1);
-//            robot1.setRobotStatus(Robot.STATUS_FREE);
-//            robots.add(robotRepository.save(robot1));
-//
-//            Robot robot2 = new Robot();
-//            robot2.setRobotId(2);
-//            robot2.setRobotStatus(Robot.STATUS_FREE);
-//            robots.add(robotRepository.save(robot2));
-//        } else {
-//            robots.addAll(existingRobots);
-//        }
-//        return robots;
-//    }
-
-    private List<Robot> initRobots() {
-        List<Robot> robots = new ArrayList<>();
-        // 用setter初始化机器人，不使用有参构造
-        Robot robot1 = new Robot();
-        robot1.setRobotId(1);
-        robot1.setRobotStatus(Robot.STATUS_FREE);
-        robots.add(robot1);
-
-        Robot robot2 = new Robot();
-        robot2.setRobotId(2);
-        robot2.setRobotStatus(Robot.STATUS_FREE);
-        robots.add(robot2);
-        return robots;
-    }
 
 
     public void submitOrder(Order order) {
@@ -225,40 +189,43 @@ public class ResourceManagerThread extends Thread {
         }
     }
 
-    @Transactional
-    private boolean allocateResource(Robot robot, Order order)
-    {
-        synchronized (resourceLock) { // 加锁
 
+    private boolean allocateResource(Robot robot, Order order) {
+        synchronized (resourceLock) { // 加锁
             Dish dish = order.getDish();
             List<Tools> allocatedTools = new ArrayList<>();
             boolean workspaceAllocated = false;
-            int originalWorkspaceUsed = workbench.getUsedSpace();
+            // int originalWorkspaceUsed = workbench.getUsedSpace(); // 动态分配不再需要简单回滚值
 
-            try
-            {
-                if (workbench.getFreeSpace() < dish.getRequiredSpace())
-                {
-                    System.out.println("工作区空间不足，订单" + order.getOrderId() + "放回等待队列");
+            System.out.println("\n--- 尝试为订单" + order.getOrderId() + "（菜品：" + dish.getDishName() + "，空间：" + dish.getRequiredSpace() + "）分配资源 ---");
+
+            try {
+                // --- 核心修改：工作台内存动态分配 ---
+                if (!memoryManager.allocateForDish(dish)) {
+                    // 即使银行家算法说安全，MemoryManager也可能因为碎片过多而失败
+                    System.out.println("工作区空间分配失败（动态分配），订单" + order.getOrderId() + "放回等待队列");
                     orderWaitQueue.offer(order);
                     return false;
                 }
-                workbench.setUsedSpace(workbench.getUsedSpace() + dish.getRequiredSpace());
-                workbench.setOccupiedByRobotId(robot.getRobotId());
+
+                // 内存分配成功后，更新机器人占用信息
                 robot.setOccupiedWorkbench(workbench);
                 workspaceAllocated = true;
-                System.out.println("工作区预分配成功，已用空间: " + workbench.getUsedSpace());
+                System.out.println("工作区动态分配成功");
 
-                if (dish.getNeedOven())
-                {
+                // 2. 工作区状态：调用 MemoryManager 打印详细分区信息
+                memoryManager.printMemoryStatus();
+                // --- 核心修改结束 ---
+
+                // --- 工具分配逻辑 (保持不变) ---
+                if (dish.getNeedOven()) {
                     List<Tools> freeOvens = allTools.stream()
                             .filter(t -> t.getToolType() == Tools.ToolType.OVEN && t.getToolStatus() == Tools.STATUS_FREE)
                             .collect(Collectors.toList());
-                    if (freeOvens.isEmpty())
-                    {
+                    if (freeOvens.isEmpty()) {
                         System.out.println("无空闲烤箱，订单" + order.getOrderId() + "放回等待队列");
                         orderWaitQueue.offer(order);
-                        rollbackResources(allocatedTools, robot, workspaceAllocated, originalWorkspaceUsed);
+                        rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
                         return false;
                     }
                     Tools oven = freeOvens.get(0);
@@ -269,16 +236,14 @@ public class ResourceManagerThread extends Thread {
                     System.out.println("烤箱" + oven.getToolId() + "预分配成功");
                 }
 
-                if (dish.getNeedFryPan())
-                {
+                if (dish.getNeedFryPan()) {
                     List<Tools> freeFryPans = allTools.stream()
                             .filter(t -> t.getToolType() == Tools.ToolType.FRY_PAN && t.getToolStatus() == Tools.STATUS_FREE)
                             .collect(Collectors.toList());
-                    if (freeFryPans.isEmpty())
-                    {
+                    if (freeFryPans.isEmpty()) {
                         System.out.println("无空闲煎锅，订单" + order.getOrderId() + "放回等待队列");
                         orderWaitQueue.offer(order);
-                        rollbackResources(allocatedTools, robot, workspaceAllocated, originalWorkspaceUsed);
+                        rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
                         return false;
                     }
                     Tools fryPan = freeFryPans.get(0);
@@ -288,6 +253,7 @@ public class ResourceManagerThread extends Thread {
                     allocatedTools.add(fryPan);
                     System.out.println("煎锅" + fryPan.getToolId() + "预分配成功");
                 }
+                // --- 工具分配逻辑结束 ---
 
                 order.setOrderStatus(Order.OrderStatus.PROCESSING);
                 robot.setRobotStatus(Robot.STATUS_BUSY);
@@ -296,19 +262,25 @@ public class ResourceManagerThread extends Thread {
                 System.out.println("机器人" + robot.getRobotId() + "分配资源成功，处理订单" + order.getOrderId());
                 return true;
 
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 System.err.println("资源分配异常，触发回滚: " + e.getMessage());
-                rollbackResources(allocatedTools, robot, workspaceAllocated, originalWorkspaceUsed);
+                // 注意：这里传递 dishId 而不是 originalWorkspaceUsed
+                rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
                 return false;
             }
         }
     }
 
-    //回滚所有已分配的资源（工具和工作区）
+    /**
+     * 回滚所有已分配的资源（工具和工作区）
+     * @param allocatedTools 已分配的工具列表
+     * @param robot 机器人对象
+     * @param workspaceAllocated 工作区是否已分配标志
+     * @param dishId 菜肴ID (用于动态内存管理释放分区)
+     */
     private void rollbackResources(List<Tools> allocatedTools, Robot robot,
-                                   boolean workspaceAllocated, int originalWorkspaceUsed) {
+                                   boolean workspaceAllocated, int dishId) {
+        System.out.println("--- 执行资源回滚 ---");
         // 1. 回滚工具资源
         if (!allocatedTools.isEmpty()) {
             for (Tools tool : allocatedTools) {
@@ -322,52 +294,60 @@ public class ResourceManagerThread extends Thread {
                 System.out.println("已回滚工具: " + tool.getToolType() + "(ID:" + tool.getToolId() + ")");
             }
         }
-        // 2. 回滚工作区资源
+
+        // 2. 回滚工作区资源 (修改为调用 MemoryManager 释放)
         if (workspaceAllocated) {
-            workbench.setUsedSpace(originalWorkspaceUsed);
-            workbench.setOccupiedByRobotId(null);
-            robot.setOccupiedWorkbench(null);
-            System.out.println("已回滚工作区，恢复已用空间为: " + originalWorkspaceUsed);
+            if (memoryManager.releaseDishPartition(dishId)) {
+                System.out.println("已回滚工作区内存（菜肴ID:" + dishId + "）");
+            } else {
+                System.err.println("!!! 警告：工作区内存回滚失败（菜肴ID:" + dishId + "）!!! ");
+            }
+            robot.setOccupiedWorkbench(null); // 机器人解绑
         }
+
         // 3. 重置机器人状态
         robot.setRobotStatus(Robot.STATUS_FREE);
         robot.setCurrentOrder(null);
-        //robotRepository.save(robot);
+        // robotRepository.save(robot);
     }
 
-    private void releaseResource(Robot robot)
-    {
+    private void releaseResource(Robot robot) {
         synchronized (resourceLock) { // 加锁
-
             System.out.println("开始释放机器人" + robot.getRobotId() + "的资源");
             Order order = robot.getCurrentOrder();
-            if (order == null) return;
+            if (order == null || order.getDish() == null) return;
             Dish dish = order.getDish();
 
-            if (robot.getOccupiedOven() != null)
-            {
+            // --- 工具资源释放 ---
+            if (robot.getOccupiedOven() != null) {
                 Tools oven = robot.getOccupiedOven();
                 oven.setToolStatus(Tools.STATUS_FREE);
                 oven.setOccupiedByRobotId(null);
                 robot.setOccupiedOven(null);
             }
 
-            if (robot.getOccupiedFryPan() != null)
-            {
+            if (robot.getOccupiedFryPan() != null) {
                 Tools fryPan = robot.getOccupiedFryPan();
                 fryPan.setToolStatus(Tools.STATUS_FREE);
                 fryPan.setOccupiedByRobotId(null);
                 robot.setOccupiedFryPan(null);
             }
+            // --- 工具资源释放结束 ---
 
-            int originalUsed = workbench.getUsedSpace();
-            workbench.setUsedSpace(Math.max(originalUsed - dish.getRequiredSpace(), 0));
-            workbench.setOccupiedByRobotId(null);
+            // --- 核心修改：工作台内存动态释放 ---
+            if (memoryManager.releaseDishPartition(dish.getDishId())) {
+                System.out.println("工作区内存（菜肴ID:" + dish.getDishId() + "）释放成功");
+            } else {
+                System.err.println("!!! 警告：工作区内存释放失败（菜肴ID:" + dish.getDishId() + "）!!! ");
+            }
             robot.setOccupiedWorkbench(null);
+            // --- 核心修改结束 ---
 
+            // 订单状态更新
             order.setOrderStatus(Order.OrderStatus.COMPLETED);
             order.setCompleteTime(LocalDateTime.now());
 
+            // 机器人状态重置
             robot.setCurrentOrder(null);
             robot.setRobotStatus(Robot.STATUS_FREE);
 
@@ -379,12 +359,12 @@ public class ResourceManagerThread extends Thread {
         new Thread(() -> {
             try {
                 System.out.println("订单开始制作:" + order.getOrderId());
-                Thread.sleep(50);
+                Thread.sleep(500); // 增加模拟时间以便观察
                 System.out.println("订单制作时间到:" + order.getOrderId());
-                //transactionTemplate.execute(status -> {
-                    releaseResource(robot);
-                    //return null;
-                //});
+                // transactionTemplate.execute(status -> {
+                releaseResource(robot);
+                // return null;
+                // });
                 printResourceStatus();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -411,10 +391,7 @@ public class ResourceManagerThread extends Thread {
             String status = tool.getToolStatus() == Tools.STATUS_FREE ? "空闲" : "被机器人" + tool.getOccupiedByRobotId() + "占用";
             System.out.println("   " + tool.getToolType() + "（ID：" + tool.getToolId() + "）：" + status);
         }
-        System.out.println("2. 工作区状态：");
-        System.out.println("   总空间：" + workbench.getTotalSpace() + "，已用：" + workbench.getUsedSpace() + "，空闲：" + workbench.getFreeSpace());
-        String workbenchOccupy = workbench.getOccupiedByRobotId() == null ? "空闲" : "被机器人" + workbench.getOccupiedByRobotId() + "占用";
-        System.out.println("   占用情况：" + workbenchOccupy);
+
         System.out.println("3. 机器人状态：");
         for (Robot robot : allRobots) {
             String orderInfo = robot.getCurrentOrder() == null ? "无" : "订单" + robot.getCurrentOrder().getOrderId() + "（菜品：" + robot.getCurrentOrder().getDish().getDishName() + "）";
@@ -445,25 +422,16 @@ public class ResourceManagerThread extends Thread {
         System.out.println("已接收订单列表，共 " + orderList.size() + " 个订单");
 
         // 在队列添加完毕后，进行优先级调度
-        PrioritySchedulingAlgorithm scheduler = new PrioritySchedulingAlgorithm(orderWaitQueue);
-        scheduler.sortQueue();     // 调度
-        scheduler.printQueue();    // 打印队列
 
+        PrioritySchedulingAlgorithm scheduler = new PrioritySchedulingAlgorithm(orderWaitQueue);
+        scheduler.sortQueue(); // 调度
+        scheduler.printQueue(); // 打印队列
     }
 
-
-
-
-
 }
-
-
-
 /*      留一个线程池的方案，万一机器人数量啥的后面要提升的话，可以考虑用线程池来管理
-
    初始化线程池，线程数可设为机器人数量
    private final ExecutorService orderExecutor = Executors.newFixedThreadPool(2); // 2 台机器人
-
     提交订单处理任务到线程池
    private void submitOrderToExecutor(Robot robot, Order order)
    {
@@ -482,7 +450,6 @@ public class ResourceManagerThread extends Thread {
          }
      });
     }
-
     //在 ResourceManagerThread 停止时关闭线程池
  private void shutdownExecutor()
      {
@@ -500,7 +467,4 @@ public class ResourceManagerThread extends Thread {
          Thread.currentThread().interrupt(); // 保留中断状态
      }
  }
-
  */
-
-
