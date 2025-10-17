@@ -74,7 +74,47 @@ public class ResourceManagerThread extends Thread {
         dishB.setDishId(2);
         dishC.setDishId(3);
     }
+    private List<Tools> initTools() {
+        List<Tools> tools = new ArrayList<>();
+        Tools oven1 = new Tools();
+        oven1.setToolId(1);
+        oven1.setToolType(Tools.ToolType.OVEN);
+        oven1.setToolStatus(Tools.STATUS_FREE);
+        tools.add(oven1);
 
+        Tools oven2 = new Tools();
+        oven2.setToolId(2);
+        oven2.setToolType(Tools.ToolType.OVEN);
+        oven2.setToolStatus(Tools.STATUS_FREE);
+        tools.add(oven2);
+
+        Tools fryPan = new Tools();
+        fryPan.setToolId(3);
+        fryPan.setToolType(Tools.ToolType.FRY_PAN);
+        fryPan.setToolStatus(Tools.STATUS_FREE);
+        tools.add(fryPan);
+
+        Tools fryPan2 = new Tools();
+        fryPan2.setToolId(3);
+        fryPan2.setToolType(Tools.ToolType.FRY_PAN);
+        fryPan2.setToolStatus(Tools.STATUS_FREE);
+        tools.add(fryPan2);
+        return tools;
+    }
+
+    private List<Robot> initRobots() {
+        List<Robot> robots = new ArrayList<>();
+        Robot robot1 = new Robot();
+        robot1.setRobotId(1);
+        robot1.setRobotStatus(Robot.STATUS_FREE);
+        robots.add(robot1);
+
+        Robot robot2 = new Robot();
+        robot2.setRobotId(2);
+        robot2.setRobotStatus(Robot.STATUS_FREE);
+        robots.add(robot2);
+        return robots;
+    }
     @Override
     public void run() {
         System.out.println("资源管理线程启动，初始资源：2烤箱+1煎锅+2机器人+工作区" + workbench.getTotalSpace() + "空间");
@@ -134,41 +174,7 @@ public class ResourceManagerThread extends Thread {
         }
     }
 
-    private List<Tools> initTools() {
-        List<Tools> tools = new ArrayList<>();
-        Tools oven1 = new Tools();
-        oven1.setToolId(1);
-        oven1.setToolType(Tools.ToolType.OVEN);
-        oven1.setToolStatus(Tools.STATUS_FREE);
-        tools.add(oven1);
 
-        Tools oven2 = new Tools();
-        oven2.setToolId(2);
-        oven2.setToolType(Tools.ToolType.OVEN);
-        oven2.setToolStatus(Tools.STATUS_FREE);
-        tools.add(oven2);
-
-        Tools fryPan = new Tools();
-        fryPan.setToolId(3);
-        fryPan.setToolType(Tools.ToolType.FRY_PAN);
-        fryPan.setToolStatus(Tools.STATUS_FREE);
-        tools.add(fryPan);
-        return tools;
-    }
-
-    private List<Robot> initRobots() {
-        List<Robot> robots = new ArrayList<>();
-        Robot robot1 = new Robot();
-        robot1.setRobotId(1);
-        robot1.setRobotStatus(Robot.STATUS_FREE);
-        robots.add(robot1);
-
-        Robot robot2 = new Robot();
-        robot2.setRobotId(2);
-        robot2.setRobotStatus(Robot.STATUS_FREE);
-        robots.add(robot2);
-        return robots;
-    }
 
     public void submitOrder(Order order) {
         try {
@@ -206,6 +212,9 @@ public class ResourceManagerThread extends Thread {
                 robot.setOccupiedWorkbench(workbench);
                 workspaceAllocated = true;
                 System.out.println("工作区动态分配成功");
+
+                // 2. 工作区状态：调用 MemoryManager 打印详细分区信息
+                memoryManager.printMemoryStatus();
                 // --- 核心修改结束 ---
 
                 // --- 工具分配逻辑 (保持不变) ---
@@ -382,9 +391,6 @@ public class ResourceManagerThread extends Thread {
             String status = tool.getToolStatus() == Tools.STATUS_FREE ? "空闲" : "被机器人" + tool.getOccupiedByRobotId() + "占用";
             System.out.println("   " + tool.getToolType() + "（ID：" + tool.getToolId() + "）：" + status);
         }
-
-        // 2. 工作区状态：调用 MemoryManager 打印详细分区信息
-        memoryManager.printMemoryStatus();
 
         System.out.println("3. 机器人状态：");
         for (Robot robot : allRobots) {
