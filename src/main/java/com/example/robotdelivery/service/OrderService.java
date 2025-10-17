@@ -6,13 +6,19 @@ import com.example.robotdelivery.pojo.Dish;
 import com.example.robotdelivery.pojo.Order;
 import com.example.robotdelivery.pojo.Order.OrderStatus;
 import org.springframework.scheduling.annotation.Scheduled;
+import com.example.robotdelivery.pojo.dto.OrderDto;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Service
-public class OrderService {
+public class OrderService implements IOrderService{
+
+    @Autowired
 
     private final OrderMapper orderMapper;
     private final DishMapper dishMapper;
@@ -21,6 +27,16 @@ public class OrderService {
     public OrderService(OrderMapper orderMapper, DishMapper dishMapper) {
         this.orderMapper = orderMapper;
         this.dishMapper = dishMapper;
+    }
+
+    @Override
+    public void add(OrderDto order) {
+        // 调用数据访问类
+        Order orderPojo = new Order();
+        BeanUtils.copyProperties(order, orderPojo);
+        // 设置创建时间
+        orderPojo.setCreateTime(LocalDateTime.now());
+        orderMapper.save(orderPojo);
     }
 
     /**
@@ -33,6 +49,7 @@ public class OrderService {
             System.out.println("[定时] 当前没有可用菜品，无法生成订单。");
             return;
         }
+
 
         List<Order> createdOrders = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
