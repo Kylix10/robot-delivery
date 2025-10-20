@@ -21,12 +21,11 @@ public class OrderService implements IOrderService{
     @Autowired
 
     private final OrderMapper orderMapper;
-    private final DishMapper dishMapper;
-    private final Random random = new Random();
 
-    public OrderService(OrderMapper orderMapper, DishMapper dishMapper) {
+
+    public OrderService(OrderMapper orderMapper) {
         this.orderMapper = orderMapper;
-        this.dishMapper = dishMapper;
+
     }
 
     @Override
@@ -39,44 +38,6 @@ public class OrderService implements IOrderService{
         orderMapper.save(orderPojo);
     }
 
-    /**
-     * 定时任务：每10秒生成10个随机订单
-     */
-    @Scheduled(fixedRate = 10000)
-    public void generateRandomOrders() {
-        List<Dish> allDishes = dishMapper.findAll();
-        if (allDishes.isEmpty()) {
-            System.out.println("[定时] 当前没有可用菜品，无法生成订单。");
-            return;
-        }
-
-
-        List<Order> createdOrders = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            Order order = new Order();
-            order.setOrderName("Order-" + System.currentTimeMillis() + "-" + i);
-
-            // 随机选择菜品
-            Dish randomDish = allDishes.get(random.nextInt(allDishes.size()));
-            order.setDish(randomDish);
-
-            // 随机优先级 1~5
-            order.setPriority(random.nextInt(5) + 1);
-
-            // 设置创建时间
-            order.setCreateTime(LocalDateTime.now());
-
-            // 初始状态为 PENDING
-            order.setOrderStatus(OrderStatus.PENDING);
-
-            // 保存订单
-            orderMapper.save(order);
-            createdOrders.add(order);
-        }
-
-        System.out.println("[定时] 成功生成 10 个随机订单：");
-        createdOrders.forEach(o -> System.out.println(formatOrder(o)));
-    }
 
     private String formatOrder(Order o) {
         return "Order{" +

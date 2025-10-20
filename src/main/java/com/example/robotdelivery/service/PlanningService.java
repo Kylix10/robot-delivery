@@ -19,7 +19,7 @@ public class PlanningService {
         this.diskSchedulerService = diskSchedulerService;
     }
 
-    @Scheduled(fixedRate = 10000, initialDelay = 3000)
+    //@Scheduled(fixedRate = 10000, initialDelay = 3000)
     public void planForLatestOrders() {
         List<Order> latest = orderMapper.findTop10ByOrderByCreateTimeDesc();
         if (latest.isEmpty()) {

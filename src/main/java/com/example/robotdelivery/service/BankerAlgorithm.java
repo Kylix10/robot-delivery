@@ -61,6 +61,9 @@ public class BankerAlgorithm {
         copy.setCurrentOrder(realRobot.getCurrentOrder());
         copy.setOccupiedOven(realRobot.getOccupiedOven() != null ? copyTools(Arrays.asList(realRobot.getOccupiedOven())).get(0) : null);
         copy.setOccupiedFryPan(realRobot.getOccupiedFryPan() != null ? copyTools(Arrays.asList(realRobot.getOccupiedFryPan())).get(0) : null);
+        // 新增：炸锅副本复制
+        copy.setOccupiedFryPot(realRobot.getOccupiedFryPot() != null ? copyTools(Arrays.asList(realRobot.getOccupiedFryPot())).get(0) : null);
+
         return copy;
     }
 
@@ -102,6 +105,23 @@ public class BankerAlgorithm {
                 System.out.println("机器人" + robotSnapshot.getRobotId() + "成功分配煎锅" + fryPan.getToolId());
             } else {
                 System.out.println("机器人" + robotSnapshot.getRobotId() + "没有可用煎锅！");
+            }
+        }
+        // 新增：炸锅模拟分配
+        if (dish.getNeedFryPot() != null && dish.getNeedFryPot()) {
+            List<Tools> freeFryPots = toolSnapshots.stream()
+                    .filter(t -> t.getToolType() == Tools.ToolType.FRY_POT && t.getToolStatus() == Tools.STATUS_FREE)
+                    .collect(Collectors.toList());
+            System.out.println("可用炸锅数量：" + freeFryPots.size());
+
+            if (!freeFryPots.isEmpty()) {
+                Tools fryPot = freeFryPots.get(0);
+                fryPot.setToolStatus(Tools.STATUS_OCCUPIED);
+                fryPot.setOccupiedByRobotId(robotSnapshot.getRobotId());
+                robotSnapshot.setOccupiedFryPot(fryPot); // 需Robot类支持setOccupiedFryPot
+                System.out.println("机器人" + robotSnapshot.getRobotId() + "成功分配炸锅" + fryPot.getToolId());
+            } else {
+                System.out.println("机器人" + robotSnapshot.getRobotId() + "没有可用炸锅！");
             }
         }
 
@@ -166,10 +186,13 @@ public class BankerAlgorithm {
         // 检查工具是否齐全（真实机器人用真实工具，模拟机器人用副本工具）
         boolean hasOven = !dish.getNeedOven() || (robot.getOccupiedOven() != null && robot.getOccupiedOven().getToolStatus() == Tools.STATUS_OCCUPIED);
         boolean hasFryPan = !dish.getNeedFryPan() || (robot.getOccupiedFryPan() != null && robot.getOccupiedFryPan().getToolStatus() == Tools.STATUS_OCCUPIED);
+        // 新增：炸锅检查
+        boolean hasFryPot = !dish.getNeedFryPot() || (robot.getOccupiedFryPot() != null && robot.getOccupiedFryPot().getToolStatus() == Tools.STATUS_OCCUPIED);
+
         // 检查工作区是否满足（真实机器人用真实数据快照，模拟机器人用模拟快照）
         boolean hasWorkbench = memorySnapshot.getOccupiedByRobotId() != null && memorySnapshot.getOccupiedByRobotId().equals(robot.getRobotId());
 
-        System.out.println("资源检查结果 - 烤箱：" + hasOven + "，煎锅：" + hasFryPan + "，工作区：" + hasWorkbench);
-        return hasOven && hasFryPan && hasWorkbench;
+        System.out.println("资源检查结果 - 烤箱：" + hasOven + "，煎锅：" + hasFryPan + "，炸锅：" + hasFryPot + "，工作区：" + hasWorkbench);
+        return hasOven && hasFryPan && hasFryPot && hasWorkbench; // 新增炸锅条件
     }
 }

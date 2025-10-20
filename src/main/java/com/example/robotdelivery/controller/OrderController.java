@@ -24,15 +24,5 @@ public class OrderController {
 
 
     //查询
-    // 查询所有订单
-    @GetMapping
-    public List<Order> getAllOrders() {
-        return orderService.findAll();
-    }
 
-    // 查询最近的N条订单，默认10条
-    @GetMapping("/recent")
-    public List<Order> getRecentOrders(@RequestParam(defaultValue = "10") int limit) {
-        return orderService.findRecentOrders(limit);
-    }
 }
