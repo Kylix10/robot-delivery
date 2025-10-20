@@ -1,18 +1,28 @@
 package com.example.robotdelivery.mapper;
 
 import com.example.robotdelivery.pojo.Order;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface OrderMapper extends CrudRepository<Order,Integer> {
-    // 按创建时间倒序查询所有订单
-    List<Order> findAllByOrderByCreateTimeDesc();
+public interface OrderMapper extends JpaRepository<Order, Integer> {
 
-    // 查询最近的N条订单
-    @Query(value = "SELECT * FROM tb_order ORDER BY create_time DESC LIMIT ?1", nativeQuery = true)
-    List<Order> findTopByOrderByCreateTimeDesc(int limit);
+    Optional<Order> findByOrderName(String orderName);
+
+    List<Order> findByDish_DishId(Integer dishId);
+
+    List<Order> findByPriority(Integer priority);
+
+    List<Order> findByCreateTimeBetween(LocalDateTime start, LocalDateTime end);
+
+    List<Order> findAllByOrderByCreateTimeAsc();
+
+    List<Order> findAllByOrderByPriorityDesc();
+
+    // 获取最新创建的10条订单（按创建时间倒序）
+    List<Order> findTop10ByOrderByCreateTimeDesc();
 }
