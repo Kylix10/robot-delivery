@@ -12,6 +12,9 @@ public class RobotVO {
     private Integer robotStatus;
     // 状态的文字描述，方便前端直接展示
     private String robotStatusDesc;
+    // *新增
+    private Integer finishedOrders;
+
 
     // 从实体类转换为VO
     public static RobotVO fromEntity(Robot robot) {
@@ -27,6 +30,8 @@ public class RobotVO {
         vo.setRobotStatus(robot.getRobotStatus());
         // 设置状态描述
         vo.setRobotStatusDesc(getStatusDescription(robot.getRobotStatus()));
+        // *新增：设置已完成订单数
+        vo.setFinishedOrders(robot.getFinishedOrders());
         return vo;
     }
 
@@ -74,5 +79,14 @@ public class RobotVO {
 
     public void setRobotStatusDesc(String robotStatusDesc) {
         this.robotStatusDesc = robotStatusDesc;
+    }
+
+    // *新增 finishedOrders 的 Getter/Setter
+    public Integer getFinishedOrders() {
+        return finishedOrders;
+    }
+
+    public void setFinishedOrders(Integer finishedOrders) {
+        this.finishedOrders = finishedOrders;
     }
 }
