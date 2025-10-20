@@ -25,4 +25,10 @@ public class OrderController {
 
     //查询
 
+    // 查询最近的N条订单，默认10条
+    @GetMapping("/recent")
+    public List<Order> getRecentOrders(@RequestParam(defaultValue = "10") int limit) {
+        return orderService.findRecentOrders(limit);
+    }
+
 }

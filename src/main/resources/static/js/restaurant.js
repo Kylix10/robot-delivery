@@ -18,7 +18,7 @@ let algorithmMetrics = {
 let memoryManager = {
     // 仅保留获取状态的 API 地址
     API_STATUS: 'http://localhost:8088/api/memory/status',
-    
+
     // 初始化方法只用于加载初始数据和设置定时刷新
     init: function() {
         this.fetchMemoryStatus(); // 首次加载状态
@@ -37,24 +37,24 @@ let memoryManager = {
             }
             const data = await response.json();
             // 收到后端返回的 MemoryVO 数据后，更新可视化
-            this.updateMemoryVisualization(data); 
+            this.updateMemoryVisualization(data);
         } catch (error) {
             console.error("Fetch Status Error:", error);
             // 生产环境中不应使用 alert，这里仅作调试提示
-            // alert("错误: 无法连接到后端获取内存状态。"); 
+            // alert("错误: 无法连接到后端获取内存状态。");
         }
     },
 
     // ------------------- 可视化更新 (基于 MemoryVO 数据) -------------------
-    
+
     // 接收 MemoryVO 对象 (data) 并更新前端显示
     updateMemoryVisualization: function(data) {
         const container = document.getElementById('memory-container');
         const listContainer = document.getElementById('partitions-list');
-        
+
         // 确保数据有效
         if (!data || !data.partitions) return;
-        
+
         const totalSpace = data.totalSpace;
         const usedSpace = data.usedSpace;
         const freeSpace = data.freeSpace;
@@ -64,17 +64,17 @@ let memoryManager = {
         const freePartitions = partitions.filter(p => !p.allocated);
         const fragmentCount = freePartitions.length;
         const usageRate = (usedSpace / totalSpace) * 100;
-        
+
         // 清空容器
         container.innerHTML = '';
         listContainer.innerHTML = '';
-        
+
         // 1. 更新统计信息
         document.getElementById('total-memory').textContent = totalSpace;
         document.getElementById('used-memory').textContent = usedSpace;
         document.getElementById('free-memory').textContent = freeSpace;
         document.getElementById('fragment-count').textContent = fragmentCount;
-        
+
         // 更新进度条
         const usageBar = document.getElementById('memory-usage-bar');
         usageBar.style.width = `${usageRate}%`;
@@ -84,24 +84,24 @@ let memoryManager = {
         partitions.forEach(partition => {
             const partitionEl = document.createElement('div');
             partitionEl.className = `memory-partition ${partition.allocated ? 'allocated' : 'free'}`;
-            
+
             // 计算宽度百分比
             const widthPercent = (partition.size / totalSpace) * 100;
             partitionEl.style.width = `${widthPercent}%`;
             // 计算起始位置百分比
             partitionEl.style.left = `${(partition.start / totalSpace) * 100}%`;
-            
+
             // 设置显示文本
             if (partition.allocated) {
                 // 使用 dishName 或 dishId 进行显示
                 const dishLabel = partition.dishName || `ID:${partition.dishId}`;
-                partitionEl.textContent = `${dishLabel} (${partition.size}KB)`; 
+                partitionEl.textContent = `${dishLabel} (${partition.size}KB)`;
             } else {
                 partitionEl.textContent = `${partition.size}KB`;
             }
-            
+
             container.appendChild(partitionEl);
-            
+
             // 3. 添加到分区列表
             const listItem = document.createElement('div');
             listItem.className = `partition-item ${partition.allocated ? 'allocated' : 'free'}`;
@@ -116,47 +116,60 @@ let memoryManager = {
     }
 };
 
-
+// 新增 API 调用函数 - 从后端获取订单数据
+function fetchOrdersAndRender() {
+    $.ajax({
+        url: '/order', // 对应 OrderController 的 @GetMapping
+        method: 'GET',
+        success: function(data) {
+            orders = data; // orders 现在是 OrderVO 列表
+            renderOrders();
+            renderDashboard(); // 更新仪表盘数据
+        },
+        error: function(xhr, status, error) {
+            console.error("获取订单数据失败:", error);
+            $('#no-orders-message').removeClass('d-none').text("获取订单数据失败，请检查后端服务。");
+        }
+    });
+}
 
 // 页面加载完成后初始化
 $(document).ready(function() {
     // 初始化导航切换
     initNavigation();
-    
-    // 初始化模拟数据
-    initMockData();
-    
+
+    // 初始化模拟数据（仅机器人、器具和工作台）
+    initMockResourcesData();
+
     // --- 【内存管理器初始化】 ---
-    
-    // 检查是否存在可视化容器，并初始化 memoryManager
     if (document.getElementById('memory-page')) {
-        // 调用 memoryManager 的 init 方法，它会启动后端状态获取和定时刷新
         memoryManager.init();
     }
 
-    
-    // 绑定内存操作按钮事件
+    // 绑定内存操作事件
     bindMemoryEvents();
-    
-    // 渲染各页面数据
+
+    // 从后端获取订单数据并渲染
+    fetchOrdersAndRender();
+
+    // 渲染其他页面数据
     renderDashboard();
-    renderOrders();
     renderRobots();
     renderResources();
-    
+
     // 设置定时刷新
     setInterval(function() {
-        updateMockData();
+        updateMockResourcesData();
         renderDashboard();
-        renderOrders();
         renderRobots();
         renderResources();
         updateRobotPositions();
-        
-        // 定期从后端获取算法指标数据
+
+        // 定期从后端获取算法指标数据和订单数据
         fetchAlgorithmMetrics();
+        fetchOrdersAndRender();
     }, 5000); // 每5秒刷新一次
-    
+
     // 初始获取算法指标
     fetchAlgorithmMetrics();
 });
@@ -167,24 +180,24 @@ function bindMemoryEvents() {
     $('#allocate-btn').click(function() {
         const dishId = $('#dish-id').val().trim();
         const size = parseInt($('#dish-size').val());
-        
+
         const result = memoryManager.allocateForDish(dishId, size);
         showMemoryMessage(result.message, result.success);
     });
-    
+
     // 释放内存按钮
     $('#release-btn').click(function() {
         const dishId = $('#release-dish-id').val().trim();
         const result = memoryManager.releaseDishPartition(dishId);
         showMemoryMessage(result.message, result.success);
     });
-    
+
     // 碎片整理按钮
     $('#defrag-btn').click(function() {
         const result = memoryManager.defragmentSpace();
         showMemoryMessage(result.message, result.success);
     });
-    
+
     // 内存页面导航
     $('#nav-memory').click(function(e) {
         e.preventDefault();
@@ -200,10 +213,10 @@ function showMemoryMessage(message, isSuccess) {
     messageEl.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'} position-fixed top-20 end-3 z-50`;
     messageEl.textContent = message;
     messageEl.style.maxWidth = '300px';
-    
+
     // 添加到页面
     document.body.appendChild(messageEl);
-    
+
     // 3秒后移除
     setTimeout(() => {
         messageEl.classList.add('fade-out');
@@ -227,7 +240,7 @@ function simulateAlgorithmMetrics() {
         avgResponseTime: (3 + Math.random() * 2).toFixed(1), // 3-5分钟
         throughput: (25 + Math.random() * 10).toFixed(0)     // 25-35单/小时
     };
-    
+
     // 模拟不使用算法的情况 - 较差的性能
     algorithmMetrics.withoutAlgorithm = {
         avgResponseTime: (6 + Math.random() * 3).toFixed(1), // 6-9分钟
@@ -240,22 +253,22 @@ function updateAlgorithmMetricsUI() {
     // 更新指标卡片
     $('#alg-avg-response').text(algorithmMetrics.withAlgorithm.avgResponseTime);
     $('#noalg-avg-response').text(algorithmMetrics.withoutAlgorithm.avgResponseTime);
-    
+
     $('#alg-throughput').text(algorithmMetrics.withAlgorithm.throughput);
     $('#noalg-throughput').text(algorithmMetrics.withoutAlgorithm.throughput);
-    
+
     // 计算改进百分比
-    const responseImprovement = Math.round((1 - 
+    const responseImprovement = Math.round((1 -
         algorithmMetrics.withAlgorithm.avgResponseTime / algorithmMetrics.withoutAlgorithm.avgResponseTime) * 100);
     const throughputImprovement = Math.round((
         algorithmMetrics.withAlgorithm.throughput / algorithmMetrics.withoutAlgorithm.throughput - 1) * 100);
-    
+
     // 更新改进百分比并设置颜色
     $('#response-improvement').text(responseImprovement + '%').removeClass('improvement-positive improvement-negative')
         .addClass(responseImprovement > 0 ? 'improvement-positive' : 'improvement-negative');
     $('#throughput-improvement').text(throughputImprovement + '%').removeClass('improvement-positive improvement-negative')
         .addClass(throughputImprovement > 0 ? 'improvement-positive' : 'improvement-negative');
-    
+
     // 渲染对比图表
     renderAlgorithmComparisonChart();
 }
@@ -267,30 +280,30 @@ function initNavigation() {
         showPage('dashboard-page');
         setActiveNav('nav-dashboard');
     });
-    
+
     $('#nav-orders').click(function(e) {
         e.preventDefault();
         showPage('orders-page');
         setActiveNav('nav-orders');
     });
-    
+
     $('#nav-robots').click(function(e) {
         e.preventDefault();
         showPage('robots-page');
         setActiveNav('nav-robots');
     });
-    
+
     $('#nav-resources').click(function(e) {
         e.preventDefault();
         showPage('resources-page');
         setActiveNav('nav-resources');
     });
-    
+
     // 订单筛选按钮
     $('#filter-orders').click(function() {
         renderOrders();
     });
-    
+
     // 提交新订单
     $('#submit-order').click(function() {
         createNewOrder();
@@ -310,34 +323,13 @@ function setActiveNav(navId) {
     $('#' + navId).addClass('active');
 }
 
-// 初始化模拟数据
-function initMockData() {
-    // 初始化订单数据
-    const now = new Date();
-    for (let i = 1; i <= 8; i++) {
-        const createTime = new Date(now - i * 60000 * (5 + Math.random() * 15));
-        const statuses = ['pending', 'cooking', 'delivering', 'completed'];
-        const status = statuses[Math.floor(Math.random() * (i < 3 ? 3 : 4))];
-        const algorithmType = Math.random() > 0.5 ? 'better' : 'basic';
-        
-        orders.push({
-            id: 'ORD' + now.getFullYear() + (now.getMonth() + 1) + now.getDate() + i,
-            dishes: getRandomDishes(),
-            createTime: formatDateTime(createTime),
-            priority: Math.floor(Math.random() * 5) + 1,
-            status: status,
-            robotId: status !== 'pending' ? 'RB' + (Math.floor(Math.random() * 5) + 1) : null,
-            algorithmType: algorithmType,
-            algorithmText: algorithmType === 'better' ? '优化算法' : '基础算法',
-            completeTime: status === 'completed' ? formatDateTime(new Date(createTime.getTime() + 100000 + Math.random() * 300000)) : null
-        });
-    }
-    
+// 初始化模拟资源数据（机器人、器具和工作台）
+function initMockResourcesData() {
     // 初始化机器人数据（只保留忙碌和空闲两种状态，不区分类型）
     for (let i = 1; i <= 5; i++) {
         const statuses = ['idle', 'busy'];
         const status = statuses[Math.floor(Math.random() * 2)];
-        
+
         robots.push({
             id: 'RB' + i,
             name: '机器人' + i, // 统一命名为"机器人+ID"
@@ -349,13 +341,13 @@ function initMockData() {
             completedOrders: Math.floor(Math.random() * 20) + 5
         });
     }
-    
+
     // 初始化烹饪器具数据
     const utensilTypes = ['炒锅', '烤箱', '蒸锅', '煎锅', '微波炉'];
     for (let i = 1; i <= 6; i++) {
         const statuses = ['available', 'occupied'];
         const status = statuses[Math.floor(Math.random() * 2)];
-        
+
         utensils.push({
             id: 'UT' + i,
             type: utensilTypes[Math.floor(Math.random() * utensilTypes.length)],
@@ -364,12 +356,12 @@ function initMockData() {
             robotId: status === 'occupied' ? 'RB' + (Math.floor(Math.random() * 5) + 1) : null
         });
     }
-    
+
     // 初始化工作台数据
     for (let i = 1; i <= 4; i++) {
         const statuses = ['available', 'occupied'];
         const status = statuses[Math.floor(Math.random() * 2)];
-        
+
         workstations.push({
             id: 'WS' + i,
             capacity: 2 + Math.floor(Math.random() * 3),
@@ -379,7 +371,7 @@ function initMockData() {
             currentTask: status === 'occupied' ? 'ORD' + (Math.floor(Math.random() * 8) + 1) : null
         });
     }
-    
+
     // 初始化餐厅地图
     initRestaurantMap();
 }
@@ -387,7 +379,7 @@ function initMockData() {
 // 初始化餐厅地图
 function initRestaurantMap() {
     const map = $('#restaurant-map');
-    
+
     // 添加固定站点，位置适应更大的地图
     const stations = [
         { id: 'kitchen', name: '厨房', x: 100, y: 100 },
@@ -397,11 +389,11 @@ function initRestaurantMap() {
         { id: 'dining2', name: '用餐区2', x: 450, y: 350 },
         { id: 'charging', name: '充电区', x: 150, y: 250 }
     ];
-    
+
     stations.forEach(station => {
         map.append(`<div class="station" style="left: ${station.x}px; top: ${station.y}px;" id="station-${station.id}">${station.name}</div>`);
     });
-    
+
     // 添加机器人标记（统一颜色）
     robots.forEach(robot => {
         map.append(`<div class="robot-marker" 
@@ -410,30 +402,8 @@ function initRestaurantMap() {
     });
 }
 
-// 更新模拟数据（模拟实时变化）
-function updateMockData() {
-    // 更新订单状态
-    orders.forEach(order => {
-        if (order.status === 'pending' && Math.random() > 0.7) {
-            order.status = 'cooking';
-            order.robotId = 'RB' + (Math.floor(Math.random() * 5) + 1);
-        } else if (order.status === 'cooking' && Math.random() > 0.8) {
-            order.status = 'delivering';
-            // 可能更换机器人
-            if (Math.random() > 0.5) {
-                order.robotId = 'RB' + (Math.floor(Math.random() * 5) + 1);
-            }
-        } else if (order.status === 'delivering' && Math.random() > 0.7) {
-            order.status = 'completed';
-            order.completeTime = formatDateTime(new Date());
-        }
-        
-        // 动态调整优先级（每20秒增加1）
-        if (['pending', 'cooking', 'delivering'].includes(order.status) && Math.random() > 0.7) {
-            order.priority = Math.min(5, order.priority + 1);
-        }
-    });
-    
+// 更新模拟资源数据（模拟实时变化）
+function updateMockResourcesData() {
     // 更新机器人状态（只保留忙碌和空闲）
     robots.forEach(robot => {
         // 忙碌机器人完成任务
@@ -442,24 +412,24 @@ function updateMockData() {
             robot.statusText = '空闲';
             robot.currentTask = null;
         }
-        
+
         // 空闲机器人分配新任务
         if (robot.status === 'idle' && Math.random() > 0.7) {
-            const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
+            const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing');
             if (pendingOrders.length > 0) {
                 robot.status = 'busy';
                 robot.statusText = '忙碌';
-                robot.currentTask = pendingOrders[Math.floor(Math.random() * pendingOrders.length)].id;
+                robot.currentTask = pendingOrders[Math.floor(Math.random() * pendingOrders.length)].orderId;
             }
         }
-        
+
         // 更新位置（随机小幅移动）
         if (robot.status === 'busy') {
             robot.location.x = Math.max(50, Math.min(650, robot.location.x + (Math.random() - 0.5) * 30));
             robot.location.y = Math.max(50, Math.min(400, robot.location.y + (Math.random() - 0.5) * 30));
         }
     });
-    
+
     // 更新资源状态
     utensils.forEach(utensil => {
         if (utensil.status === 'occupied' && Math.random() > 0.7) {
@@ -472,7 +442,7 @@ function updateMockData() {
             utensil.robotId = 'RB' + (Math.floor(Math.random() * 5) + 1);
         }
     });
-    
+
     workstations.forEach(station => {
         if (station.status === 'occupied' && Math.random() > 0.75) {
             station.status = 'available';
@@ -483,8 +453,8 @@ function updateMockData() {
             station.status = 'occupied';
             station.statusText = '占用中';
             station.robotId = 'RB' + (Math.floor(Math.random() * 5) + 1);
-            const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'cooking');
-            station.currentTask = pendingOrders.length > 0 ? pendingOrders[Math.floor(Math.random() * pendingOrders.length)].id : null;
+            const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing');
+            station.currentTask = pendingOrders.length > 0 ? pendingOrders[Math.floor(Math.random() * pendingOrders.length)].orderId : null;
         }
     });
 }
@@ -507,7 +477,7 @@ function renderDashboard() {
     const completionRate = todayOrders > 0 ? Math.round((completedOrders / todayOrders) * 100) : 0;
     const activeRobots = robots.filter(r => r.status === 'busy').length;
     const totalRobots = robots.length;
-    
+
     // 计算平均出餐时间
     let avgTime = 0;
     const completed = orders.filter(o => o.status === 'completed');
@@ -519,7 +489,7 @@ function renderDashboard() {
         });
         avgTime = Math.round((avgTime / completed.length) * 10) / 10;
     }
-    
+
     // 更新统计卡片
     $('#today-orders').text(todayOrders);
     $('#completed-orders').text(completedOrders);
@@ -527,7 +497,7 @@ function renderDashboard() {
     $('#active-robots').text(activeRobots);
     $('#total-robots').text(totalRobots);
     $('#avg-time').text(avgTime);
-    
+
     // 渲染订单趋势图表
     renderOrdersChart();
 }
@@ -535,12 +505,12 @@ function renderDashboard() {
 // 渲染订单趋势图表
 function renderOrdersChart() {
     const ctx = document.getElementById('orders-chart').getContext('2d');
-    
+
     // 按小时统计今天的订单
     const hours = Array(24).fill(0);
     const now = new Date();
     const today = now.toDateString();
-    
+
     orders.forEach(order => {
         const orderDate = new Date(order.createTime);
         if (orderDate.toDateString() === today) {
@@ -548,7 +518,7 @@ function renderOrdersChart() {
             hours[hour]++;
         }
     });
-    
+
     // 只显示有数据的小时
     const labels = [];
     const data = [];
@@ -558,12 +528,12 @@ function renderOrdersChart() {
             data.push(count);
         }
     });
-    
+
     // 销毁已存在的图表
     if (window.ordersChart) {
         window.ordersChart.destroy();
     }
-    
+
     // 创建新图表 - 使用马卡龙色系
     window.ordersChart = new Chart(ctx, {
         type: 'line',
@@ -606,62 +576,80 @@ function renderOrdersChart() {
 function renderOrders() {
     const tableBody = $('#orders-table-body');
     const searchTerm = $('#order-search').val().toLowerCase();
+    // 注意：后端 Order.java 中只有 PENDING, PROCESSING, COMPLETED，前端筛选应统一
     const statusFilter = $('#order-status-filter').val();
     const priorityFilter = $('#order-priority-filter').val();
-    
+
     // 筛选订单
     let filteredOrders = orders.filter(order => {
-        const matchesSearch = order.id.toLowerCase().includes(searchTerm);
-        const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+        // 注意：OrderVO 中是 orderId
+        const matchesSearch = order.orderId.toString().toLowerCase().includes(searchTerm);
+
+        // 状态筛选：匹配 OrderVO 中的 status 字段（如 "pending"）
+        let matchesStatus = false;
+        if (statusFilter === 'all') {
+            matchesStatus = true;
+        } else if (statusFilter === 'pending' && order.status === 'pending') {
+            matchesStatus = true;
+        } else if (['cooking', 'delivering'].includes(statusFilter) && order.status === 'processing') {
+            // 将前端的 cooking/delivering 统一映射到后端的 processing
+            matchesStatus = true;
+        } else if (statusFilter === 'completed' && order.status === 'completed') {
+            matchesStatus = true;
+        }
+        // 忽略前端筛选中的 'cancelled'，因为后端实体中没有这个状态
+
         const matchesPriority = priorityFilter === 'all' || order.priority.toString() === priorityFilter;
         return matchesSearch && matchesStatus && matchesPriority;
     });
-    
+
     // 按创建时间排序（最新的在前）
-    filteredOrders.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
-    
+    filteredOrders.sort((a, b) => new Date(b.createTime) - new Date(a.createTime)); // 尽管后端已排序，但筛选后仍需排序
+
     // 清空表格
     tableBody.empty();
-    
+
     // 显示无数据消息或填充表格
     if (filteredOrders.length === 0) {
         $('#no-orders-message').removeClass('d-none');
         return;
     }
-    
+
     $('#no-orders-message').addClass('d-none');
-    
+
     // 填充表格 - 使用马卡龙色系状态标签
     filteredOrders.forEach(order => {
         // 状态样式映射（马卡龙色系）
         const statusMap = {
             'pending': { text: '待处理', style: 'background-color: var(--macaron-purple); color: #4B3B47;' },
-            'cooking': { text: '烹饪中', style: 'background-color: var(--macaron-pink); color: #D64933;' },
-            'delivering': { text: '配送中', style: 'background-color: var(--macaron-blue); color: #2A7B9B;' },
-            'completed': { text: '已完成', style: 'background-color: var(--macaron-green); color: #4A5859;' },
-            'cancelled': { text: '已取消', style: 'background-color: #F4B393; color: #A43820;' }
+            'processing': { text: order.statusText, style: 'background-color: var(--macaron-pink); color: #D64933;' }, // 使用后端的 statusText
+            'completed': { text: '已完成', style: 'background-color: var(--macaron-green); color: #4A5859;' }
+            // 'cancelled' (后端没有这个状态)
         };
-        
+
+        // 使用 order.status 查找样式
+        const statusData = statusMap[order.status] || { text: order.statusText, style: 'background-color: gray; color: white;' };
+
         // 优先级样式（马卡龙色系）
         let priorityStyle = '';
         if (order.priority >= 4) priorityStyle = 'background-color: var(--macaron-pink); color: #D64933;';
         else if (order.priority >= 3) priorityStyle = 'background-color: var(--macaron-orange); color: #D35400;';
         else if (order.priority >= 2) priorityStyle = 'background-color: var(--macaron-green); color: #4A5859;';
         else priorityStyle = 'background-color: var(--macaron-blue); color: #2A7B9B;';
-        
+
         // 算法类型样式
-        const algorithmStyle = order.algorithmType === 'better' 
-            ? 'background-color: var(--macaron-green); color: #4A5859;' 
+        const algorithmStyle = order.algorithmText.includes('better')
+            ? 'background-color: var(--macaron-green); color: #4A5859;'
             : 'background-color: var(--macaron-purple); color: #4B3B47;';
-        
+
         const row = `
             <tr>
-                <td>${order.id}</td>
-                <td>${order.dishes.join(', ')}</td>
+                <td>${order.orderId}</td>
+                <td>${order.dishName}</td>
                 <td>${order.createTime}</td>
                 <td><span class="status-badge" style="${priorityStyle}">${order.priority}</span></td>
-                <td><span class="status-badge" style="${statusMap[order.status].style}">${statusMap[order.status].text}</span></td>
-                <td>${order.robotId ? '机器人' + order.robotId.substring(2) : '-'}</td> <!-- 显示统一的机器人名称 -->
+                <td><span class="status-badge" style="${statusData.style}">${statusData.text}</span></td>
+                <td>${order.robotId ? '机器人' + order.robotId : '-'}</td>
                 <td><span class="status-badge" style="${algorithmStyle}">${order.algorithmText}</span></td>
                 <td>
                     <div class="btn-group btn-group-sm">
@@ -669,10 +657,10 @@ function renderOrders() {
                             <i class="fas fa-eye"></i>
                         </button>
                         ${order.status === 'pending' ? `
-                            <button class="btn" style="background-color: var(--macaron-orange); color: #D35400;" title="修改优先级">
+                            <button class="btn" style="background-color: var(--macaron-orange); color: #D35400;" title="修改优先级" data-order-id="${order.orderId}">
                                 <i class="fas fa-exclamation-circle"></i>
                             </button>
-                            <button class="btn" style="background-color: #F4B393; color: #A43820;" title="取消订单">
+                            <button class="btn" style="background-color: #F4B393; color: #A43820;" title="取消订单" data-order-id="${order.orderId}">
                                 <i class="fas fa-times"></i>
                             </button>
                         ` : ''}
@@ -680,7 +668,7 @@ function renderOrders() {
                 </td>
             </tr>
         `;
-        
+
         tableBody.append(row);
     });
 }
@@ -688,10 +676,10 @@ function renderOrders() {
 // 渲染机器人监控页面
 function renderRobots() {
     const container = $('#robots-container');
-    
+
     // 清空容器
     container.empty();
-    
+
     // 填充机器人卡片 - 使用马卡龙色系（统一类型，只有忙碌和空闲状态）
     robots.forEach(robot => {
         // 状态样式映射（马卡龙色系）
@@ -699,7 +687,7 @@ function renderRobots() {
             'idle': { style: 'background-color: var(--macaron-green); color: #4A5859;', icon: 'check-circle' },
             'busy': { style: 'background-color: var(--macaron-orange); color: #D35400;', icon: 'cog' }
         };
-        
+
         const card = `
             <div class="col-md-4 col-lg-3 mb-4">
                 <div class="card robot-card h-100">
@@ -721,13 +709,13 @@ function renderRobots() {
                 </div>
             </div>
         `;
-        
+
         container.append(card);
     });
-    
+
     // 渲染机器人状态图表（只显示忙碌和空闲）
     renderRobotsStatusChart();
-    
+
     // 渲染机器人工作量图表
     renderRobotsWorkloadChart();
 }
@@ -735,18 +723,18 @@ function renderRobots() {
 // 渲染机器人状态分布图表（只显示忙碌和空闲）
 function renderRobotsStatusChart() {
     const ctx = document.getElementById('robots-status-chart').getContext('2d');
-    
+
     // 统计各状态机器人数量（只统计忙碌和空闲）
     const statusData = {
         '空闲': robots.filter(r => r.status === 'idle').length,
         '忙碌': robots.filter(r => r.status === 'busy').length
     };
-    
+
     // 销毁已存在的图表
     if (window.robotsStatusChart) {
         window.robotsStatusChart.destroy();
     }
-    
+
     // 创建新图表 - 使用马卡龙色系
     window.robotsStatusChart = new Chart(ctx, {
         type: 'doughnut',
@@ -776,15 +764,15 @@ function renderRobotsStatusChart() {
 // 渲染机器人工作量图表
 function renderRobotsWorkloadChart() {
     const ctx = document.getElementById('robots-workload-chart').getContext('2d');
-    
+
     // 按机器人ID排序
     const sortedRobots = [...robots].sort((a, b) => a.id.localeCompare(b.id));
-    
+
     // 销毁已存在的图表
     if (window.robotsWorkloadChart) {
         window.robotsWorkloadChart.destroy();
     }
-    
+
     // 创建新图表 - 使用马卡龙色系
     window.robotsWorkloadChart = new Chart(ctx, {
         type: 'bar',
@@ -826,12 +814,12 @@ function renderResources() {
     // 渲染烹饪器具表格
     const utensilsTable = $('#utensils-table-body');
     utensilsTable.empty();
-    
+
     utensils.forEach(utensil => {
-        const statusStyle = utensil.status === 'available' 
-            ? 'background-color: var(--macaron-green); color: #4A5859;' 
+        const statusStyle = utensil.status === 'available'
+            ? 'background-color: var(--macaron-green); color: #4A5859;'
             : 'background-color: var(--macaron-pink); color: #D64933;';
-        
+
         const row = `
             <tr>
                 <td>${utensil.id}</td>
@@ -840,19 +828,19 @@ function renderResources() {
                 <td>${utensil.robotId ? '机器人' + utensil.robotId.substring(2) : '-'}</td>
             </tr>
         `;
-        
+
         utensilsTable.append(row);
     });
-    
+
     // 渲染工作台表格
     const workstationsTable = $('#workstations-table-body');
     workstationsTable.empty();
-    
+
     workstations.forEach(station => {
-        const statusStyle = station.status === 'available' 
-            ? 'background-color: var(--macaron-green); color: #4A5859;' 
+        const statusStyle = station.status === 'available'
+            ? 'background-color: var(--macaron-green); color: #4A5859;'
             : 'background-color: var(--macaron-pink); color: #D64933;';
-        
+
         const row = `
             <tr>
                 <td>${station.id}</td>
@@ -862,7 +850,7 @@ function renderResources() {
                 <td>${station.currentTask || '-'}</td>
             </tr>
         `;
-        
+
         workstationsTable.append(row);
     });
 }
@@ -956,63 +944,39 @@ function createNewOrder() {
     $('.form-check-input:checked').each(function() {
         selectedDishes.push($(this).val());
     });
-    
+
     // 验证是否选择了菜品
     if (selectedDishes.length === 0) {
         alert('请至少选择一道菜品');
         return;
     }
-    
+
     // 获取优先级和算法类型
     const priority = parseInt($('#order-priority').val());
     const algorithmType = $('#order-processing-algorithm').val();
-    
-    // 生成订单ID
-    const now = new Date();
-    const orderId = 'ORD' + now.getFullYear() + (now.getMonth() + 1) + now.getDate() + (orders.length + 1);
-    
-    // 创建新订单对象
-    const newOrder = {
-        id: orderId,
-        dishes: selectedDishes,
-        createTime: formatDateTime(now),
-        priority: priority,
-        status: 'pending',
-        robotId: null,
-        algorithmType: algorithmType,
-        algorithmText: algorithmType === 'better' ? '优化算法' : '基础算法',
-        completeTime: null
-    };
-    
-    // 添加到订单列表
-    orders.unshift(newOrder);
-    
-    // 重新渲染订单页面
-    renderOrders();
-    renderDashboard();
-    
-    // 重置表单
-    $('#new-order-form')[0].reset();
-    
-    // 显示成功消息
-    alert('订单创建成功！订单号：' + orderId);
-}
 
-// 辅助函数：生成随机菜品列表
-function getRandomDishes() {
-    const dishes = ['鱼香肉丝', '宫保鸡丁', '西红柿炒鸡蛋', '麻婆豆腐', '米饭', '炒时蔬', '酸辣汤'];
-    const selected = [];
-    const count = Math.floor(Math.random() * 3) + 1; // 1-3种菜品
-    
-    for (let i = 0; i < count; i++) {
-        let dish;
-        do {
-            dish = dishes[Math.floor(Math.random() * dishes.length)];
-        } while (selected.includes(dish));
-        selected.push(dish);
-    }
-    
-    return selected;
+    // 发送创建订单请求到后端
+    $.ajax({
+        url: '/order',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            dishes: selectedDishes,
+            priority: priority,
+            algorithmType: algorithmType
+        }),
+        success: function() {
+            // 创建成功后重新获取订单列表
+            fetchOrdersAndRender();
+            // 重置表单
+            $('#new-order-form')[0].reset();
+            alert('订单创建成功！');
+        },
+        error: function(xhr, status, error) {
+            console.error('创建订单失败:', error);
+            alert('创建订单失败，请重试。');
+        }
+    });
 }
 
 // 辅助函数：格式化日期时间
@@ -1026,4 +990,3 @@ function formatDateTime(date) {
         second: '2-digit'
     }).replace(',', ' ');
 }
-    

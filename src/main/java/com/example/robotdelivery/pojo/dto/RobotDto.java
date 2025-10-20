@@ -14,8 +14,7 @@ public class RobotDto {
     private String robotStatusDesc;
 
     // 从实体类转换为DTO
-    public static RobotDto fromEntity(Robot robot) {
-        if (Objects.isNull(robot)) {
+    public static RobotDto fromEntity(Robot robot) {        if (Objects.isNull(robot)) {
             return null;
         }
 
