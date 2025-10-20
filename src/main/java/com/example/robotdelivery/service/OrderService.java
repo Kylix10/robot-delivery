@@ -24,7 +24,7 @@ public class OrderService implements IOrderService{
     @Autowired
 
     private final OrderMapper orderMapper;
-
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public OrderService(OrderMapper orderMapper) {
         this.orderMapper = orderMapper;
