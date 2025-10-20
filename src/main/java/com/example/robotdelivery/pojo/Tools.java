@@ -7,7 +7,8 @@ public class Tools
   // 工具类型枚举（文档“资源种类动态变化”需求）
     public enum ToolType {
         OVEN, // 烤箱
-        FRY_PAN // 煎锅
+        FRY_PAN, // 煎锅
+        FRY_POT
     }
     private Integer toolId; // 工具ID
     //private String toolName; // 工具名称，**改为了toolType，使用枚举

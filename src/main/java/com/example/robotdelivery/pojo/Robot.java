@@ -35,6 +35,8 @@ public class Robot {
     @Transient // 同理，工作区也为内存临时状态，需添加 @Transient
     private Memory occupiedWorkbench; // 占用的工作区
 
+    @Transient // 同上
+    private Tools occupiedFryPot; // 占用的煎锅（内存临时状态，不存数据库）
 
 
 
@@ -61,6 +63,15 @@ public class Robot {
     public void setOccupiedFryPan(Tools occupiedFryPan) { this.occupiedFryPan = occupiedFryPan; }
     public Memory getOccupiedWorkbench() { return occupiedWorkbench; }
     public void setOccupiedWorkbench(Memory occupiedWorkbench) { this.occupiedWorkbench = occupiedWorkbench; }
+    // 新增炸锅的getter/setter
+    public Tools getOccupiedFryPot() {
+        return occupiedFryPot;
+    }
+
+    public void setOccupiedFryPot(Tools occupiedFryPot) {
+        this.occupiedFryPot = occupiedFryPot;
+    }
+
     // *新增统计机器人完成的订单数量
     public Integer getFinishedOrders() {
         return finishedOrders;
