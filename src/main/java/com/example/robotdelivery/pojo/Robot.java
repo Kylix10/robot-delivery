@@ -21,6 +21,9 @@ public class Robot {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_order_id")
     private Order currentOrder;
+    // 新增属性，统计机器人完成的订单数量
+    @Column(name="finished_orders")
+    private Integer finishedOrders;
 
     // 添加 @Transient 注解，排除 Tools 类型字段的数据库映射
     @Transient // 标记为“非数据库字段”，仅内存中使用
@@ -58,4 +61,16 @@ public class Robot {
     public void setOccupiedFryPan(Tools occupiedFryPan) { this.occupiedFryPan = occupiedFryPan; }
     public Memory getOccupiedWorkbench() { return occupiedWorkbench; }
     public void setOccupiedWorkbench(Memory occupiedWorkbench) { this.occupiedWorkbench = occupiedWorkbench; }
+    // *新增统计机器人完成的订单数量
+    public Integer getFinishedOrders() {
+        return finishedOrders;
+    }
+
+    public void setFinishedOrders(Integer finishedOrders) {
+        this.finishedOrders = finishedOrders;
+    }
+
+    public void incFinishedOrders(){
+        this.finishedOrders++;
+    }
 }

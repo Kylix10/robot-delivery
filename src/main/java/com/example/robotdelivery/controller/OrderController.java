@@ -35,4 +35,5 @@ public class OrderController {
     public List<Order> getRecentOrders(@RequestParam(defaultValue = "10") int limit) {
         return orderService.findRecentOrders(limit);
     }
+
 }
