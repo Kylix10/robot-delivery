@@ -46,8 +46,11 @@ public class ResourceManagerThread extends Thread {
 
     @Autowired
     private TransactionTemplate transactionTemplate;
+    // 新增：注入 ToolManager
+    @Autowired
+    private ToolManager toolManager;
 
-    private final List<Tools> allTools = initTools();
+    private List<Tools> allTools;
     private final List<Robot> allRobots = initRobots();
     private final Memory workbench = new Memory();
     private final BlockingQueue<Order> orderWaitQueue = new LinkedBlockingQueue<>();
@@ -67,45 +70,14 @@ public class ResourceManagerThread extends Thread {
     // public void initRobots() {
     // this.allRobots = initAndSaveRobots();
     // }
-
-
-    private List<Tools> initTools() {
-        List<Tools> tools = new ArrayList<>();
-        // 烤箱（2个）
-        Tools oven1 = new Tools();
-        oven1.setToolId(1);
-        oven1.setToolType(Tools.ToolType.OVEN);
-        oven1.setToolStatus(Tools.STATUS_FREE);
-        tools.add(oven1);
-
-        Tools oven2 = new Tools();
-        oven2.setToolId(2);
-        oven2.setToolType(Tools.ToolType.OVEN);
-        oven2.setToolStatus(Tools.STATUS_FREE);
-        tools.add(oven2);
-
-        // 煎锅（2个，修复ID重复问题）
-        Tools fryPan1 = new Tools();
-        fryPan1.setToolId(3);
-        fryPan1.setToolType(Tools.ToolType.FRY_PAN);
-        fryPan1.setToolStatus(Tools.STATUS_FREE);
-        tools.add(fryPan1);
-
-        Tools fryPan2 = new Tools();
-        fryPan2.setToolId(4); // 修正为唯一ID
-        fryPan2.setToolType(Tools.ToolType.FRY_PAN);
-        fryPan2.setToolStatus(Tools.STATUS_FREE);
-        tools.add(fryPan2);
-
-        // 新增：炸锅（1个，适配新Dish的needFryPot属性）
-        Tools fryPot = new Tools();
-        fryPot.setToolId(5);
-        fryPot.setToolType(Tools.ToolType.FRY_POT); // 需确保Tools类的ToolType枚举包含FRY_POT
-        fryPot.setToolStatus(Tools.STATUS_FREE);
-        tools.add(fryPot);
-
-        return tools;
+    // 从 ToolManager 获取已初始化并集中管理的工具列表
+    @PostConstruct
+    public void setupTools() {
+        this.allTools = toolManager.getAllToolInstances();
+        // 确保 Thread 有名字，方便日志区分
+        this.setName("Robot-delivery-Resource-Manager");
     }
+
 
     private List<Robot> initRobots() {
         List<Robot> robots = new ArrayList<>();

@@ -5,8 +5,10 @@ import com.example.robotdelivery.service.ResourceManagerThread;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.robotdelivery.vo.OrderScheduleResult;
+import org.springframework.test.annotation.Commit;
 
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +23,7 @@ public class ResourceManagerTest {
 
     @Test
     @Transactional
+    //@Commit 测试时不提交数据，所以数据库中数据不会有更改。需要查看数据就将这一行加上
     public void testOrderGenerationAndResourceScheduling() throws InterruptedException {
         // 2. 主动调用OrderGenerate的generateRandomOrders()生成订单（不再等定时任务）
         System.out.println("主动调用订单生成方法...");

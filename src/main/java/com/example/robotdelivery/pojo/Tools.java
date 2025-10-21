@@ -8,7 +8,7 @@ public class Tools
     public enum ToolType {
         OVEN, // 烤箱
         FRY_PAN, // 煎锅
-        FRY_POT
+        FRY_POT  // 炸锅
     }
     private Integer toolId; // 工具ID
     //private String toolName; // 工具名称，**改为了toolType，使用枚举

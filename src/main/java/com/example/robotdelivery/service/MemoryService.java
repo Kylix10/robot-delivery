@@ -1,12 +1,15 @@
 package com.example.robotdelivery.service;
 
 import com.example.robotdelivery.pojo.Memory;
+import com.example.robotdelivery.pojo.Partition;
 import com.example.robotdelivery.pojo.vo.MemoryVO;
 import com.example.robotdelivery.pojo.vo.MemoryVO;
+import com.example.robotdelivery.pojo.vo.WorkstationVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field; // 可以移除此 import
+import java.util.List;
 import java.util.stream.Collectors; // 可以移除此 import
 
 /**
@@ -44,5 +47,18 @@ public class MemoryService {
         return vo;
     }
 
-    // ... 其他 service 方法（如操作方法） ...
+    /**
+     * 获取工作台分区的详细表格视图数据
+     * 专门用于前端表格（视图 B）
+     * @return List<WorkstationVo> 包含每个分区的详细状态
+     */
+    public List<WorkstationVo> getWorkstationDetails() {
+        Memory memory = memoryManager.getMemory(); // 获取全局 Memory 信息
+        List<Partition> partitions = memoryManager.getPartitions(); // 获取分区列表
+
+        // 使用 Stream API 将 Partition 列表转换为 WorkstationVo 列表
+        return partitions.stream()
+                .map(p -> WorkstationVo.fromPartitionAndMemory(p, memory))
+                .collect(Collectors.toList());
+    }
 }
