@@ -36,7 +36,7 @@ public class Dish {
     @Column(name = "need_fry_pot", nullable = false)
     private Boolean needFryPot;
 
-    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE})
     @JoinTable(
             name = "dish_ingredient_mapping",
             joinColumns = @JoinColumn(name = "dish_id"),
