@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 // 导入 MemoryManager
 import com.example.robotdelivery.service.MemoryManager;
-
+import com.example.robotdelivery.vo.OrderScheduleResult;
 import com.example.robotdelivery.service.PrioritySchedulingAlgorithm;
 
 import javax.annotation.PostConstruct;
@@ -24,9 +24,11 @@ import java.time.LocalDateTime;
 @Service
 public class ResourceManagerThread extends Thread {
 
-    @Autowired
-    private DiskSchedulerService diskSchedulerService; // 注入磁盘调度服务
 
+
+    @Autowired
+    //磁盘调度的接口
+    private DiskSchedulerInterface diskScheduler;
     @Autowired
     BankerAlgorithm bankerAlgorithm;
     @Autowired
@@ -133,7 +135,7 @@ public class ResourceManagerThread extends Thread {
                     Thread.sleep(LOOP_DELAY);
                     continue;
                 }
-// 定义并赋值dish变量
+                 // 定义并赋值dish变量
                 Dish dish = order.getDish();
                 // 新增：空指针防护（数据库查询的dish可能缺少requiredSpace等属性）
                 if (dish == null) {
@@ -141,7 +143,7 @@ public class ResourceManagerThread extends Thread {
                     Thread.sleep(LOOP_DELAY);
                     continue;
                 }
-// 再判断 requiredSpace
+                // 再判断 requiredSpace
                 if (dish.getRequiredSpace() == null) {
                     System.out.println("订单" + order.getOrderId() + "菜品空间未设置，跳过处理");
                     Thread.sleep(LOOP_DELAY);
@@ -165,13 +167,23 @@ public class ResourceManagerThread extends Thread {
                         allRobots,
                         workbench
                 );
-
                 if (isSafe) {
+                    //新加入执行从仓库拿取食材的路径规划 加在银行家算法后面
+                    OrderScheduleResult orderScheduleResult = diskScheduler.handleOrderSchedule(order);
+                    if (orderScheduleResult == null) {
+                        System.out.println("仓库路径规划失败，订单" + order.getOrderId() + "放回等待队列");
+                        orderWaitQueue.offer(order);
+                        Thread.sleep(LOOP_DELAY);
+                        continue;
+                    }
+                    
+                    //执行资源分配
                     boolean allocateSuccess = allocateResource(freeRobot, order);
                     if (allocateSuccess) {
                         simulateOrderProcessing(freeRobot, order);
                     }
-                } else {
+                }
+                 else {
                     orderWaitQueue.offer(order);
                     System.out.println("资源不足/不安全，订单" + order.getOrderId() + "放回等待队列");
                     Thread.sleep(LOOP_DELAY);

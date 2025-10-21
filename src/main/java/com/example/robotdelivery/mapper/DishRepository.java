@@ -8,9 +8,5 @@ import org.springframework.stereotype.Repository;
 public interface DishRepository extends JpaRepository<Dish, Integer> {
 
     Dish findByDishName(String dishName);
-    Dish findByDishType(String dishType);
-
-
-
 }
 

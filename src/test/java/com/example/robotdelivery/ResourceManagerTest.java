@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.robotdelivery.vo.OrderScheduleResult;
 
 import java.util.concurrent.TimeUnit;
 
@@ -31,7 +32,6 @@ public class ResourceManagerTest {
             resourceManager.start();
             TimeUnit.SECONDS.sleep(1); // 等待线程初始化
         }
-
 
         //3. 等待订单处理（根据订单数量调整时间，10个订单约需10秒）
         System.out.println("等待资源管理器处理订单...");

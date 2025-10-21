@@ -13,10 +13,6 @@ public interface OrderMapper extends JpaRepository<Order, Integer> {
 
     Optional<Order> findByOrderName(String orderName);
 
-    List<Order> findByDish_DishId(Integer dishId);
-
-    List<Order> findByPriority(Integer priority);
-
     List<Order> findByCreateTimeBetween(LocalDateTime start, LocalDateTime end);
 
     List<Order> findAllByOrderByCreateTimeAsc();

@@ -3,7 +3,7 @@ package com.example.robotdelivery.vo;
 import lombok.Data;
 import java.util.List;
 import java.util.Map;
-
+//单次磁盘调用算法的运行结果 便于前端可视化展示
 @Data
 public class SchedulerResult {
     private String algorithmName;        // 算法名称（FCFS/SSTF/SCAN）
