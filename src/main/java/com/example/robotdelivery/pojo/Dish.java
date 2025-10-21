@@ -44,6 +44,11 @@ public class Dish {
     )
     private List<Ingredient> ingredients = new ArrayList<>();
 
+
+    private Long cookTime; //     做菜需要的时间，这个属性是不是忘记定义了！！！！！，目前我这边单位用的毫秒
+
+
+
     public Dish() {}
 
     // 可选：构造器初始化名字、类型和工具
@@ -79,4 +84,18 @@ public class Dish {
 
     public List<Ingredient> getIngredients() { return ingredients; }
     public void setIngredients(List<Ingredient> ingredients) { this.ingredients = ingredients; }
+
+    public Long getCookTime()
+    {
+        return cookTime != null ? cookTime : 500L; // 默认 500ms
+    }
+
+    public void setCookTime(Long cookTime)
+    {
+        this.cookTime = cookTime;
+    }
+
+
+
+
 }
