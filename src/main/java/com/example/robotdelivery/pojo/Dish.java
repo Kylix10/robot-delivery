@@ -21,7 +21,6 @@ public class Dish {
     @Column(name = "dish_name", nullable = false, length = 100)
     private String dishName;
 
-    // ❌ 去掉 Enum，改为 String
     @Column(name = "dish_type", nullable = false, unique = true, length = 50)
     private String dishType;
 
@@ -56,7 +55,7 @@ public class Dish {
         this.needFryPot = needFryPot;
     }
 
-    // getters & setters
+    // getters & setters方法
     public Integer getDishId() { return dishId; }
     public void setDishId(Integer dishId) { this.dishId = dishId; }
 

@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-
+//这个类会从数据库中获取最新订单 → 读取仓库食材位置 → 模拟三种调度算法 → 比较并输出最优路径结果。
 @Service
 public class PlanningService {
 

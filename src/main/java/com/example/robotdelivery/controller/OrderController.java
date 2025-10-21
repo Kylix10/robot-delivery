@@ -21,8 +21,6 @@ public class OrderController {
         orderService.add(order);
         return "success!";
     }
-
-
     //查询
 
     // 查询最近的N条订单，默认10条

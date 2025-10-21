@@ -33,11 +33,29 @@ public class Warehouse {
         positionToIngredient.put(position, ing);
     }
 
-    public Optional<Ingredient> getIngredientByPosition(Integer position) {
+     /** 按位置取食材 */
+     public Optional<Ingredient> getIngredientByPosition(Integer position) {
         return Optional.ofNullable(positionToIngredient.get(position));
     }
 
+    /** 返回仓库所有食材（副本） */
     public Map<Integer, Ingredient> getAllIngredients() {
         return new HashMap<>(positionToIngredient);
     }
+
+    /** 根据食材名称查找其在仓库中的位置 */
+    public Optional<Integer> getPositionByIngredientName(String name) {
+        return positionToIngredient.entrySet().stream()
+                .filter(e -> e.getValue().getName().equals(name))
+                .map(Map.Entry::getKey)
+                .findFirst();
+    }
+
+    /** 打印仓库分布（调试用） */
+    public void printWarehouseMap() {
+        System.out.println("📦 仓库食材布局：");
+        positionToIngredient.forEach((pos, ing) ->
+                System.out.println("位置 " + pos + " → " + ing.getName()));
+    }
+    
 }

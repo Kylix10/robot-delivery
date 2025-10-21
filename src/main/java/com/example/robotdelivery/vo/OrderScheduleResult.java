@@ -2,7 +2,7 @@ package com.example.robotdelivery.vo;
 
 import lombok.Data;
 import java.util.Map;
-
+//某个订单的三种算法的可视化结果
 @Data
 public class OrderScheduleResult {
     private String dishName; // 订单菜品名
