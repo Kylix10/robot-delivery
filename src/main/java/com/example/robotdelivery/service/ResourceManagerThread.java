@@ -464,6 +464,9 @@ public class ResourceManagerThread extends Thread {
             System.out.println("接收的订单列表为空，跳过处理");
             return;
         }
+
+
+
         // 把列表中的订单逐个加入等待队列
         for (Order order : orderList) {
             if (order != null && order.getDish() != null) {
@@ -477,6 +480,16 @@ public class ResourceManagerThread extends Thread {
             }
         }
         System.out.println("已接收订单列表，共 " + orderList.size() + " 个订单");
+
+
+        //新增， 将排序的队列彻底复制一份，用于对比测试
+        List<Order> copiedOrders = deepCopyOrdersForSimulation(new ArrayList<>(orderWaitQueue));
+        DeadlockSimulation simulation = new DeadlockSimulation(copiedOrders);
+
+        new Thread(simulation::runSimulation, "Deadlock-Simulation-Thread").start();
+
+
+
 
         // 在队列添加完毕后，进行优先级调度
 
@@ -499,7 +512,21 @@ public class ResourceManagerThread extends Thread {
         System.out.println("==========================");
     }
 
+
+    //一个用于彻底复制队列的方法
+    private List<Order> deepCopyOrdersForSimulation(List<Order> originalOrders) {
+        return DeadlockSimulation.deepCopyOrders(originalOrders);
+    }
+
+
+
+
 }
+
+
+
+
+
 /*      留一个线程池的方案，万一机器人数量啥的后面要提升的话，可以考虑用线程池来管理
    初始化线程池，线程数可设为机器人数量
    private final ExecutorService orderExecutor = Executors.newFixedThreadPool(2); // 2 台机器人
