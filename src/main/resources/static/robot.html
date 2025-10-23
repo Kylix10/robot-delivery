@@ -13,45 +13,102 @@
         /* 马卡龙糖果色系定义 - 提高饱和度，更符合餐厅食欲感 */
         :root {
             --macaron-blue: #A8DADC;        /* 马卡龙蓝 */
+            --macaron-blue-dark: #5F9EA0;
             --macaron-green: #C7CEEA;       /* 马卡龙绿 */
             --macaron-pink: #FFCAD4;        /* 马卡龙粉 */
+            --macaron-pink-dark: #D64933;
             --macaron-yellow: #FFE5D9;      /* 马卡龙黄 */
+            --macaron-tyellow: #FFFACD;
+            --macaron-yellow-dark: #DAA520;
             --macaron-purple: #B7B7A4;      /* 马卡龙紫 */
             --macaron-orange: #FEC89A;      /* 马卡龙橙 */
             --macaron-light: #F8F9FA;       /* 马卡龙浅灰 */
             --text-color: #333333;          /* 文本颜色 */
-            
+            --macaron-gray: #E9ECEF;
+            --macaron-gray-dark: #6C757D;
+            --macaron-red: #F8C6CF;
+            --macaron-red-dark: #C92A2A;
+            /*--macaron-orange: #FFE5B4;*/
+            --macaron-orange-dark: #E67E22;
+
             /* 内存分区颜色 */
             --allocated-color: #fdc494;     /* 已分配分区 - 橙色色 */
-            --free-color: rgba(140, 210, 140, 0.88);          /* 空闲分区 - 绿色 */
+            --free-color: rgba(129, 192, 129, 0.88);          /* 空闲分区 - 绿色 */
             --border-color: #FFFFFF;        /* 分区边框 */
         }
-        
+        /* 补充状态文本颜色类 */
+        .text-macaron-blue-dark {
+            color: var(--macaron-blue-dark);
+        }
+        .text-macaron-yellow-dark {
+            color: var(--macaron-yellow-dark);
+        }
+        .text-macaron-pink-dark {
+            color: var(--macaron-pink-dark);
+        }
+        .text-macaron-orange-dark {
+            color: var(--macaron-orange-dark);
+        }
+
+        /* 补充背景颜色类（如果需要） */
+        .bg-macaron-blue\/20 {
+            background-color: var(--macaron-blue);
+        }
+        .bg-macaron-yellow\/20 {
+            background-color: var(--macaron-yellow);
+        }
+        .bg-macaron-pink\/20 {
+            background-color: var(--macaron-pink);
+        }
+        /* 算法对比指标颜色 */
+        .improvement-positive {
+            color: var(--macaron-pink-dark); /* 收益提升用粉红色 */
+            font-weight: bold;
+        }
+        .improvement-negative {
+            color: var(--macaron-blue-dark); /* 响应时间变长或收益下降用蓝色 */
+            font-weight: bold;
+        }
+
+        /* 状态标签和按钮的过渡动画 */
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+
+        .transition-colors {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* 悬停效果 */
+        .hover\:shadow-sm:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
         body {
             color: var(--text-color);
             background-color: #FFF9F5;      /* 温暖的浅底色，增强食欲感 */
         }
-        
+
         .content-area {
             min-height: calc(100vh - 120px);
         }
-        
+
         .status-badge {
             padding: 0.35em 0.65em;
             border-radius: 0.375rem;
         }
-        
+
         .robot-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: none;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        
+
         .robot-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-        
+
         .map-container {
             position: relative;
             height: 450px;                  /* 增加地图高度 */
@@ -60,7 +117,7 @@
             overflow: hidden;
             border: 1px solid #F0E6E0;
         }
-        
+
         .robot-marker {
             position: absolute;
             width: 32px;
@@ -75,12 +132,12 @@
             transition: all 0.5s ease;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        
+
         .robot-marker {
             background-color: var(--macaron-blue); /* 统一机器人颜色 */
             color: #2A7B9B;
         }
-        
+
         .station {
             position: absolute;
             padding: 6px 12px;
@@ -91,14 +148,14 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             font-weight: 500;
         }
-        
+
         .path-line {
             position: absolute;
             background-color: rgba(199, 206, 234, 0.4);
             transform-origin: 0 0;
             z-index: 5;
         }
-        
+
         .card {
             border: none;
             box-shadow: 0 3px 10px rgba(0,0,0,0.07);
@@ -106,40 +163,40 @@
             overflow: hidden;
             background-color: white;
         }
-        
+
         .card-header {
             background-color: white;
             border-bottom: 1px solid #F0E6E0;
             padding: 1rem 1.25rem;
         }
-        
+
         .table {
             border-collapse: separate;
             border-spacing: 0;
         }
-        
+
         .table th, .table td {
             border-bottom: 1px solid #F0E6E0;
         }
-        
+
         .table-light {
             background-color: #FEF6F0;
         }
-        
+
         /* 算法对比卡片样式 */
         .metric-card {
             transition: transform 0.2s ease;
         }
-        
+
         .metric-card:hover {
             transform: scale(1.02);
         }
-        
+
         .improvement-positive {
             color: #2E7D32;
             font-weight: bold;
         }
-        
+
         .improvement-negative {
             color: #C62828;
             font-weight: bold;
@@ -149,7 +206,7 @@
         .memory-visualization {
             margin-top: 2rem;
         }
-        
+
         .memory-container {
             width: 100%;
             height: 120px;
@@ -160,7 +217,7 @@
             overflow: hidden;
             margin-bottom: 1rem;
         }
-        
+
         .memory-partition {
             position: absolute;
             height: 100%;
@@ -174,19 +231,19 @@
             box-sizing: border-box;
             transition: all 0.5s ease;
         }
-        
+
         .memory-partition.allocated {
             background-color: var(--allocated-color);
         }
-        
+
         .memory-partition.free {
             background-color: var(--free-color);
         }
-        
+
         .memory-stats {
             margin-top: 1rem;
         }
-        
+
         .progress-container {
             height: 25px;
             background-color: #e0e0e0;
@@ -194,7 +251,7 @@
             overflow: hidden;
             margin-bottom: 0.5rem;
         }
-        
+
         .progress-bar {
             height: 100%;
             display: flex;
@@ -204,20 +261,20 @@
             font-weight: 500;
             font-size: 14px;
         }
-        
+
         .memory-actions {
             margin-top: 1rem;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
-        
+
         .memory-partitions-list {
             margin-top: 1rem;
             max-height: 200px;
             overflow-y: auto;
         }
-        
+
         .partition-item {
             padding: 8px 12px;
             margin-bottom: 5px;
@@ -249,11 +306,6 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="nav-robots" href="#robots" style="color: var(--text-color);">
-                            <i class="fas fa-robot me-1"></i>机器人监控
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" id="nav-resources" href="#resources" style="color: var(--text-color);">
                             <i class="fas fa-boxes me-1"></i>资源管理
                         </a>
@@ -273,7 +325,7 @@
         <!-- 仪表盘页面 -->
         <div id="dashboard-page" class="page-content">
             <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-tachometer-alt me-2"></i>系统仪表盘</h2>
-            
+
             <!-- 统计卡片 -->
             <div class="row mb-4">
                 <div class="col-md-3 mb-3">
@@ -313,7 +365,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- 图表和地图 - 调整比例，机器人分布区域更大 -->
             <div class="row">
                 <div class="col-md-4 mb-4">  <!-- 订单趋势区域缩小 -->
@@ -340,7 +392,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- 订单管理页面 -->
         <div id="orders-page" class="page-content d-none">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -349,7 +401,7 @@
                     <i class="fas fa-plus me-1"></i>新建订单
                 </button>
             </div>
-            
+
             <!-- 订单筛选 -->
             <div class="card mb-4">
                 <div class="card-body">
@@ -362,9 +414,7 @@
                                 <option value="all">所有状态</option>
                                 <option value="pending">待处理</option>
                                 <option value="cooking">烹饪中</option>
-                                <option value="delivering">配送中</option>
                                 <option value="completed">已完成</option>
-                                <option value="cancelled">已取消</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -385,7 +435,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- 订单列表 -->
             <div class="card">
                 <div class="table-responsive">
@@ -394,8 +444,8 @@
                             <tr>
                                 <th>订单号</th>
                                 <th>菜品</th>
-                                <th>创建时间</th>
                                 <th>优先级</th>
+                                <th>创建时间</th>
                                 <th>状态</th>
                                 <th>处理机器人</th>
                                 <th>完成时间</th>
@@ -408,55 +458,17 @@
                     </table>
                 </div>
                 <div class="card-footer text-center" id="no-orders-message">
-                    暂无订单数据
+                    暂无更多订单数据
                 </div>
             </div>
         </div>
-        
-        <!-- 机器人监控页面 -->
-        <div id="robots-page" class="page-content d-none">
-            <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-robot me-2"></i>机器人监控</h2>
-            
-            <div class="row">
-                <div class="col-md-12 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row" id="robots-container">
-                                <!-- 机器人卡片将通过JS动态生成 -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-chart-pie me-2"></i>机器人状态分布</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="robots-status-chart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #D35400;"><i class="fas fa-chart-bar me-2"></i>机器人工作量统计</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="robots-workload-chart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
+
+
+
         <!-- 资源管理页面 -->
         <div id="resources-page" class="page-content d-none">
             <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-boxes me-2"></i>资源管理</h2>
-            
+
             <div class="row mb-4">
                 <div class="col-md-6 mb-4">
                     <div class="card">
@@ -504,8 +516,7 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 算法对比部分 -->
+
             <div class="row mb-4">
                 <div class="col-md-12 mb-4">
                     <div class="card">
@@ -514,7 +525,6 @@
                         </div>
                         <div class="card-body">
                             <div class="row mb-4">
-                                <!-- 指标卡片 -->
                                 <div class="col-md-6">
                                     <div class="card metric-card h-100" style="background-color: var(--macaron-blue); color: #2A7B9B;">
                                         <div class="card-body">
@@ -536,27 +546,39 @@
                                 <div class="col-md-6">
                                     <div class="card metric-card h-100" style="background-color: var(--macaron-green); color: #4A5859;">
                                         <div class="card-body">
-                                            <h5 class="card-title"><i class="fas fa-tachometer-alt me-2"></i>吞吐量 (单/小时)</h5>
+                                            <h5 class="card-title"><i class="fas fa-money-bill-wave me-2"></i>总收益 (元)</h5>
                                             <div class="d-flex justify-content-between align-items-center mt-3">
                                                 <div>
                                                     <p class="mb-1"><small>使用算法</small></p>
-                                                    <p class="display-6 mb-0" id="alg-throughput">0</p>
+                                                    <p class="display-6 mb-0" id="alg-revenue">0</p>
                                                 </div>
                                                 <div>
                                                     <p class="mb-1"><small>不使用算法</small></p>
-                                                    <p class="display-6 mb-0" id="noalg-throughput">0</p>
+                                                    <p class="display-6 mb-0" id="noalg-revenue">0</p>
                                                 </div>
                                             </div>
-                                            <p class="mt-3"><small>提升: <span id="throughput-improvement" class="improvement-positive">0%</span></small></p>
+                                            <p class="mt-3"><small>提升: <span id="revenue-improvement" class="improvement-positive">0%</span></small></p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- 对比图表 -->
-                            <div class="row">
+
+                            <div class="row mb-5">
                                 <div class="col-md-12">
-                                    <canvas id="algorithm-comparison-chart"></canvas>
+                                    <h6 class="text-center text-secondary mb-3">性能指标对比柱状图</h6>
+                                    <div style="height: 300px;"><canvas id="comparison-chart"></canvas></div>
+                                </div>
+                            </div>
+
+                            <h5 class="card-title text-center text-secondary mb-3 mt-4">收益随时间变化趋势 (每分钟更新)</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-center text-muted">基础算法收益</h6>
+                                    <div style="height: 300px;"><canvas id="noalg-revenue-chart"></canvas></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-center text-muted">优化算法收益</h6>
+                                    <div style="height: 300px;"><canvas id="alg-revenue-chart"></canvas></div>
                                 </div>
                             </div>
                         </div>
@@ -568,7 +590,7 @@
         <!-- 内存分配算法可视化页面 -->
 <div id="memory-page" class="page-content d-none memory-visualization">
     <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-microchip me-2"></i>动态内存分配算法可视化</h2>
-    
+
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-desktop me-2"></i>工作台内存分区状态</h5>
@@ -576,7 +598,7 @@
         <div class="card-body">
             <div class="memory-container" id="memory-container">
                 </div>
-            
+
             <div class="memory-stats mt-3">
                 <div class="row mb-2">
                     <div class="col-md-3">
@@ -592,14 +614,14 @@
                         <strong>碎片数量:</strong> <span id="fragment-count">0</span> 个
                     </div>
                 </div>
-                
+
                 <div class="progress-container">
                     <div class="progress-bar" id="memory-usage-bar" style="width: 0%; background-color: var(--allocated-color);">
                         已使用: 0%
                     </div>
                 </div>
             </div>
-            
+
             <div class="memory-partitions-list mt-4">
                 <h6><i class="fas fa-list-ul me-1"></i>分区详细信息:</h6>
                 <div id="partitions-list">
@@ -607,7 +629,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-info-circle me-2"></i>最佳适应算法说明</h5>
@@ -707,9 +729,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- 引入外部JavaScript文件 -->
     <script src="js/restaurant.js"></script>
 </body>
 </html>
-    

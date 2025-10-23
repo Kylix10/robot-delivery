@@ -21,6 +21,8 @@ public interface IOrderService {
      * 获取最近 N 条订单的视图对象列表。
      */
     List<OrderVO> findRecentOrderVOs(int limit);
+    // 新增：根据订单ID查询单个VO（支持OrderController的getOrderById接口）
+    OrderVO getOrderVOById(Integer orderId);
 
     // ================= 内部业务/数据查询方法 (返回 Order 实体) =================
 
