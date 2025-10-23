@@ -3,14 +3,17 @@ let orders = [];
 let robots = [];
 let utensils = [];
 let workstations = [];
+let minuteCounter = 0; // 记录运行分钟数，用于图表横轴
 let algorithmMetrics = {
     withAlgorithm: {
         avgResponseTime: 0,
-        throughput: 0
+        revenue: 0, // 吞吐量改为收益
+        revenueHistory: [] // 新增：存储带算法的历史收益 [{time: 1, value: 100}, ...]
     },
     withoutAlgorithm: {
         avgResponseTime: 0,
-        throughput: 0
+        revenue: 0, // 吞吐量改为收益
+        revenueHistory: [] // 新增：存储不带算法的历史收益
     }
 };
 
@@ -123,26 +126,32 @@ let memoryManager = {
 // =================================================================
 // 【数据获取函数】
 // =================================================================
-
+// *修改
 // 从后端获取订单数据并渲染 (对应 OrderController 的 @GetMapping)
 function fetchOrdersAndRender() {
     $.ajax({
-        // FIX: 将路径修正为 /api/order，以匹配大多数 Spring Boot 项目的 OrderController 约定
-        url: 'http://localhost:8088/order/recent',
+        url: `${API_BASE}/orders`,
         method: 'GET',
-        success: function(data) {
-            orders = data; // orders 现在是 OrderVO 列表
-            renderOrders();
-            renderDashboard(); // 更新仪表盘数据
+        success: function(response) {
+            // 后端返回的是ApiResponse对象，订单列表在response.data中
+            if (response && response.code === 200 && Array.isArray(response.data)) {
+                orders = response.data; // 正确获取订单列表
+                renderOrders();
+                renderDashboard(); // 更新仪表盘数据
+            } else {
+                // 处理接口返回格式错误的情况
+                console.error("订单数据格式错误", response);
+                orders = [];
+                renderOrders();
+                $('#no-orders-message').removeClass('d-none').html(`获取订单数据失败: ${response?.message || '未知错误'}`);
+            }
         },
         error: function(xhr, status, error) {
             console.error("获取订单数据失败:", error);
-            // 打印详细错误信息，帮助用户定位问题
             $('#no-orders-message').removeClass('d-none').html(`获取订单数据失败，请检查后端服务和接口路径。错误: <strong>${xhr.status} (${error})</strong>`);
         }
     });
 }
-
 // 从后端获取机器人数据并更新 (对应 RobotController.getAllRobots)
 function fetchRobots() {
     $.ajax({
@@ -250,7 +259,9 @@ $(document).ready(function() {
     renderDashboard();
 
     // 初始获取算法指标 (会调用图表渲染)
+
     fetchAlgorithmMetrics();
+
 
     // 设置定时刷新
     setInterval(function() {
@@ -268,7 +279,7 @@ $(document).ready(function() {
 
         // 刷新算法指标（模拟）
         fetchAlgorithmMetrics();
-    }, 5000); // 每5秒刷新一次
+    }, 10000); // 每5秒刷新一次
 });
 
 // 绑定内存操作事件 (移除内存分配/释放/整理，因为后端Controller未提供接口)
@@ -301,47 +312,125 @@ function showMemoryMessage(message, isSuccess) {
 // 从后端获取算法指标数据 (保留模拟逻辑，因为未提供后端API)
 function fetchAlgorithmMetrics() {
     simulateAlgorithmMetrics();
+    // 假设每 6 次（60秒/1分钟）更新一次历史数据
+    if (minuteCounter % 6 === 0) {
+        updateRevenueHistory(algorithmMetrics.withAlgorithm, 'withAlgorithm');
+        updateRevenueHistory(algorithmMetrics.withoutAlgorithm, 'withoutAlgorithm');
+    }
+    minuteCounter++;
     updateAlgorithmMetricsUI();
 }
 
-// 模拟算法指标数据
+// 模拟算法指标数据 (将吞吐量改为收益)
 function simulateAlgorithmMetrics() {
-    // 模拟使用算法的情况 - 更好的性能
-    algorithmMetrics.withAlgorithm = {
-        avgResponseTime: (3 + Math.random() * 2).toFixed(1), // 3-5分钟
-        throughput: (25 + Math.random() * 10).toFixed(0)     // 25-35单/小时
-    };
+    // 模拟使用优化算法的情况 - 更好的性能和收益
+    algorithmMetrics.withAlgorithm.avgResponseTime = (3 + Math.random() * 2).toFixed(1); // 3-5分钟
+    algorithmMetrics.withAlgorithm.revenue = (1200 + Math.random() * 400).toFixed(2);     // 1200-1600元/小时
 
-    // 模拟不使用算法的情况 - 较差的性能
-    algorithmMetrics.withoutAlgorithm = {
-        avgResponseTime: (6 + Math.random() * 3).toFixed(1), // 6-9分钟
-        throughput: (15 + Math.random() * 5).toFixed(0)      // 15-20单/小时
-    };
+    // 模拟不使用算法的情况 - 较差的性能和收益
+    algorithmMetrics.withoutAlgorithm.avgResponseTime = (6 + Math.random() * 3).toFixed(1); // 6-9分钟
+    algorithmMetrics.withoutAlgorithm.revenue = (800 + Math.random() * 300).toFixed(2);      // 800-1100元/小时
 }
+// 新增：更新历史收益数据并渲染折线图
+function updateRevenueHistory(metrics, type) {
+    const revenue = parseFloat(metrics.revenue);
+    const newEntry = {
+        time: metrics.revenueHistory.length + 1, // 记录是第几分钟
+        value: revenue // 当前收益值
+    };
 
+    // 限制历史数据点数量
+    if (metrics.revenueHistory.length >= 20) {
+        metrics.revenueHistory.shift(); // 移除最旧的点
+    }
+    metrics.revenueHistory.push(newEntry);
+
+    // 仅在历史数据更新时渲染折线图
+    if (type === 'withAlgorithm') {
+        renderRevenueChart('alg-revenue-chart', algorithmMetrics.withAlgorithm.revenueHistory, '使用优化算法总收益 (元)', 'rgba(255, 202, 212, 0.8)');
+    } else {
+        renderRevenueChart('noalg-revenue-chart', algorithmMetrics.withoutAlgorithm.revenueHistory, '使用基础算法总收益 (元)', 'rgba(199, 206, 234, 0.8)');
+    }
+}
 // 更新算法指标UI
+// 修改updateAlgorithmMetricsUI
 function updateAlgorithmMetricsUI() {
     // 更新指标卡片
     $('#alg-avg-response').text(algorithmMetrics.withAlgorithm.avgResponseTime);
     $('#noalg-avg-response').text(algorithmMetrics.withoutAlgorithm.avgResponseTime);
 
-    $('#alg-throughput').text(algorithmMetrics.withAlgorithm.throughput);
-    $('#noalg-throughput').text(algorithmMetrics.withoutAlgorithm.throughput);
+    // 更新收益卡片
+    $('#alg-revenue').text(algorithmMetrics.withAlgorithm.revenue);
+    $('#noalg-revenue').text(algorithmMetrics.withoutAlgorithm.revenue);
 
     // 计算改进百分比
     const responseImprovement = Math.round((1 -
         algorithmMetrics.withAlgorithm.avgResponseTime / algorithmMetrics.withoutAlgorithm.avgResponseTime) * 100);
-    const throughputImprovement = Math.round((
-        algorithmMetrics.withAlgorithm.throughput / algorithmMetrics.withoutAlgorithm.throughput - 1) * 100);
+    const revenueImprovement = Math.round((
+        algorithmMetrics.withAlgorithm.revenue / algorithmMetrics.withoutAlgorithm.revenue - 1) * 100);
 
     // 更新改进百分比并设置颜色
     $('#response-improvement').text(responseImprovement + '%').removeClass('improvement-positive improvement-negative')
         .addClass(responseImprovement > 0 ? 'improvement-positive' : 'improvement-negative');
-    $('#throughput-improvement').text(throughputImprovement + '%').removeClass('improvement-positive improvement-negative')
-        .addClass(throughputImprovement > 0 ? 'improvement-positive' : 'improvement-negative');
+    $('#revenue-improvement').text(revenueImprovement + '%').removeClass('improvement-positive improvement-negative')
+        .addClass(revenueImprovement > 0 ? 'improvement-positive' : 'improvement-negative');
 
-    // 渲染对比图表
-    renderAlgorithmComparisonChart();
+    // 渲染对比图表 (如果需要，可保留此柱状图)
+    //renderAlgorithmComparisonChart();
+}
+
+// 新增：渲染收益折线图
+function renderRevenueChart(chartId, dataArray, title, color) {
+    const canvas = document.getElementById(chartId);
+    if (!canvas) {
+        console.error(`HTML 元素 #${chartId} 未找到，无法渲染图表。`);
+        return;
+    }
+    const ctx = canvas.getContext('2d');
+
+    // 销毁已存在的图表
+    if (window[chartId + 'Chart']) {
+        window[chartId + 'Chart'].destroy();
+    }
+
+    const labels = dataArray.map(d => `${d.time} min`);
+    const data = dataArray.map(d => d.value);
+
+    window[chartId + 'Chart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: title,
+                data: data,
+                backgroundColor: color,
+                borderColor: color.replace('0.8', '1'),
+                borderWidth: 2,
+                tension: 0.3,
+                fill: false, // 折线图不填充
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '收益 (元)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: '时间 (分钟)'
+                    }
+                }
+            }
+        }
+    });
 }
 
 // 初始化导航切换
@@ -449,7 +538,7 @@ function createNewOrder() {
     // 发送创建订单请求到后端 (假设 OrderController 接受 /api/order 的 POST 请求)
     $.ajax({
         // FIX: 使用 API_BASE，路径改为 /api/order
-        url: 'http://localhost:8088/order',
+        url: `${API_BASE}/orders`,
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
@@ -479,6 +568,7 @@ function createNewOrder() {
 // ---------------------------------------------
 
 // 渲染订单列表 (使用全局 orders 变量)
+// 渲染订单列表 (使用全局 orders 变量)
 function renderOrders() {
     const tableBody = $('#orders-table-body');
     const searchTerm = $('#order-search').val() ? $('#order-search').val().toLowerCase() : '';
@@ -503,26 +593,63 @@ function renderOrders() {
     filteredOrders.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
 
     if (filteredOrders.length === 0) {
-        tableBody.append(`<tr><td colspan="8" class="text-center text-muted">暂无符合条件的订单。</td></tr>`);
+        tableBody.append(`<tr><td colspan="8" class="text-center text-muted py-4">暂无符合条件的订单</td></tr>`);
     }
+
+    // 马卡龙色系状态样式映射
+    const statusStyles = {
+        'pending': {
+            bgClass: 'bg-macaron-blue',
+            textClass: 'text-macaron-blue-dark',
+            label: '待处理'
+        },
+        'cooking': {
+            bgClass: 'bg-macaron-yellow',
+            textClass: 'text-macaron-yellow-dark',
+            label: '烹饪中'
+        },
+        'completed': {
+            bgClass: 'bg-macaron-pink',
+            textClass: 'text-macaron-pink-dark',
+            label: '已完成'
+        },
+    };
 
     // 渲染表格行
     filteredOrders.forEach(order => {
-        let statusClass = '';
-        if (order.status === 'pending') statusClass = 'bg-info-subtle';
-        else if (order.status === 'processing') statusClass = 'bg-warning-subtle';
-        else if (order.status === 'completed') statusClass = 'bg-success-subtle';
+        // 获取当前状态的样式（默认使用待处理样式）
+        const statusInfo = statusStyles[order.status] || statusStyles['pending'];
+
+        // 优先级标签样式
+        const priorityClass = order.priority >= 4
+            ? 'bg-macaron-red text-macaron-red-dark'
+            : order.priority >= 2
+                ? 'bg-macaron-orange text-macaron-orange-dark'
+                : 'bg-macaron-green text-macaron-green-dark';
 
         const row = `
-            <tr class="${statusClass}">
-                <td>${order.orderId || 'N/A'}</td>
-                <td>${order.dishName || 'N/A'}</td>
-                <td>${order.priority || 'N/A'}</td>
-                <td>${order.createTime || 'N/A'}</td>
-                <td>${order.statusText || 'N/A'}</td>
-                <td>${order.robotId || 'N/A'}</td>
-                <td>${order.algorithmText || 'N/A'}</td>
-                <td><button class="btn btn-sm btn-outline-secondary" disabled>详情</button></td>
+            <tr class="${statusInfo.bgClass} transition-all duration-300 hover:shadow-sm">
+                <td class="py-3 font-medium">${order.orderId || 'N/A'}</td>
+                <td class="py-3">${order.dishName || 'N/A'}</td>
+                <td class="py-3">
+                    <span class="px-2 py-1 rounded-full text-sm ${priorityClass}">
+                        ${order.priority || 'N/A'}
+                    </span>
+                </td>
+                <td class="py-3 text-muted">${order.createTime || 'N/A'}</td>
+                <td class="py-3">
+                    <!-- 状态标签：拼接背景类和文字类 -->
+                    <span class="px-3 py-1 rounded-full text-sm font-medium ${statusInfo.bgClass} ${statusInfo.textClass}">
+                      ${statusInfo.label}
+                    </span>
+                </td>
+                <td class="py-3">${order.robotId || '待分配'}</td>
+                <td class="py-3 text-muted">${order.completeTime || '-'}</td>
+                <td class="py-3">
+                    <button class="btn btn-sm rounded-full bg-macaron-purple/20 text-macaron-purple-dark hover:bg-macaron-purple/30 transition-colors">
+                        <i class="fas fa-info-circle me-1"></i>详情
+                    </button>
+                </td>
             </tr>
         `;
         tableBody.append(row);

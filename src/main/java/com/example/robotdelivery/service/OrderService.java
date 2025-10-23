@@ -124,6 +124,13 @@ public class OrderService implements IOrderService{
                 .map(this::convertToOrderVO)
                 .collect(Collectors.toList());
     }
+    @Override
+    public OrderVO getOrderVOById(Integer orderId) {
+        // 1. 根据ID查询订单实体
+        Optional<Order> optionalOrder = orderMapper.findById(orderId);
+        // 2. 实体转VO（复用已有的convertToOrderVO方法）
+        return optionalOrder.map(this::convertToOrderVO).orElse(null);
+    }
 
 
     private String formatOrder(Order o) {
