@@ -45,6 +45,10 @@ public class ResourceManagerThread extends Thread {
     @Autowired
     RobotRepository robotRepository;
 
+    @Autowired
+    private RobotService robotService;
+
+
     // 新增：注入OrderService
     @Autowired
     private OrderService orderService;
@@ -375,30 +379,12 @@ public class ResourceManagerThread extends Thread {
                // System.out.println("[资源分配] 调用PlanningService生成路径规划结果：");
                // planningService.planForLatestOrders();
 
-                // 3. 修改 allocateResource 中的事务逻辑：移除内存状态修改
-                transactionTemplate.execute(status -> {
-                    Robot latestRobot = robotRepository.findById(robot.getRobotId())
-                            .orElseThrow(() -> new RuntimeException("机器人不存在"));
-                    // 只修改数据库中的机器人，不修改内存中的 robot 对象
-                    latestRobot.setRobotStatus(Robot.STATUS_BUSY);
-                    latestRobot.setCurrentOrder(order);
-                    robotRepository.save(latestRobot);
+                // 3. 调用 RobotService 完成机器人状态更新（核心修改）
+                Robot updatedRobot = robotService.updateRobotToBusy(robot.getRobotId(), order);
+                syncRobotToMemory(updatedRobot); // 同步内存状态
+                robot.setCurrentOrder(order); // 同步传入的 robot 对象
 
-                    // 打印机器人关联的订单号
-                    if (latestRobot.getCurrentOrder() != null) {
-                        System.out.println("机器人" + latestRobot.getRobotId() + "DOITDOITDOIT已关联订单：" + latestRobot.getCurrentOrder().getOrderId());
-                    } else {
-                        System.out.println("机器人" + latestRobot.getRobotId() + "DOITDOITDOIT未关联订单（异常）");
-                    }
-
-
-                    // 同步内存对象（关键：内存中也绑定订单）
-                    robot.setCurrentOrder(order);
-                    syncRobotToMemory(latestRobot);
-                    return null;
-                });
-
-                System.out.println("机器人" + robot.getRobotId() + "分配资源成功，数据库已同步，开始处理订单" + order.getOrderId());
+                System.out.println("机器人" + robot.getRobotId() + "分配资源成功，事务已提交");
                 return true;
 
             } catch (ObjectOptimisticLockingFailureException e) {
@@ -517,54 +503,34 @@ public class ResourceManagerThread extends Thread {
                 // 步骤3：事务逻辑修改（核心！只保留 finalOrder，删除 finalRobot/finalDish）
                 final Order finalOrder = order;
 
-                transactionTemplate.execute(status -> {
-                    try {
-                        System.out.println("开始更新订单" + finalOrder.getOrderId() + "和机器人" + robotId);
-
-                        // 关键修改1：事务内查询最新的机器人对象（获取最新version）
-                        Robot latestRobot = robotRepository.findById(robotId)
-                                .orElseThrow(() -> new RuntimeException("机器人" + robotId + "不存在"));
-
-                        // 关键修改2：更新订单（原有逻辑不变）
-                        finalOrder.setOrderStatus(Order.OrderStatus.COMPLETED);
-                        finalOrder.setCompleteTime(LocalDateTime.now());
-                        orderService.save(finalOrder);
-                        System.out.println("订单" + finalOrder.getOrderId() + "已保存");
-
-                        // 验证订单数据库状态（原有逻辑不变）
-                        Optional<Order> orderOptional = orderService.findById(finalOrder.getOrderId());
+// 步骤3：调用独立事务方法完成订单和机器人状态更新（核心修改）
+                try {
+                    if (order != null) {
+                        // 订单设为完成
+                        Order completedOrder = orderService.completeOrder(order);
+                        // 验证订单状态（可选）
+                        Optional<Order> orderOptional = orderService.findById(completedOrder.getOrderId());
                         if (orderOptional.isPresent()) {
                             Order dbOrder = orderOptional.get();
                             System.out.println("数据库中订单" + dbOrder.getOrderId() + "真实状态：" + dbOrder.getOrderStatus());
-                            System.out.println("数据库中完成时间：" + (dbOrder.getCompleteTime() != null ? dbOrder.getCompleteTime() : "未设置"));
-                        } else {
-                            System.err.println("数据库中未找到订单" + finalOrder.getOrderId());
+                            System.out.println("数据库中完成时间：" + dbOrder.getCompleteTime());
                         }
-
-                        // 关键修改3：用最新机器人对象更新状态（version匹配，无冲突）
-                        latestRobot.setRobotStatus(Robot.STATUS_FREE);
-                        latestRobot.setCurrentOrder(null);
-                        robotRepository.save(latestRobot); // 保存最新对象，version正确
-                        System.out.println("机器人" + latestRobot.getRobotId() + "已保存（最新version=" + latestRobot.getVersion() + "）");
-
-                        // 关键修改4：同步最新状态到内存
-                        syncRobotToMemory(latestRobot);
-                        robot.setRobotStatus(Robot.STATUS_FREE); // 同步内存中传入的robot对象
-                        robot.setCurrentOrder(null);
-
-                        if (status.isRollbackOnly()) {
-                            System.err.println("警告：事务被标记为回滚！");
-                        } else {
-                            System.out.println("事务正常提交");
-                        }
-                    } catch (Exception e) {
-                        status.setRollbackOnly();
-                        System.err.println("事务回滚原因：" + e.getMessage());
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
                     }
-                    return null;
-                });
+
+                    // 机器人设为空闲
+                    Robot freedRobot = robotService.updateRobotToFree(robotId);
+                    syncRobotToMemory(freedRobot); // 同步内存状态
+                    robot
+                            .setRobotStatus(Robot.STATUS_FREE);
+                    robot
+                            .setCurrentOrder(null);
+
+                    System.out.println("机器人" + robotId + "释放资源成功，事务已提交");
+                } catch (Exception e) {
+                    System.err.println("释放资源异常：" + e.getMessage());
+                    e
+                            .printStackTrace();
+                }
 
                 System.out.println("机器人" + robotId + "释放资源，订单" + finalOrder.getOrderId() + "完成");
             }

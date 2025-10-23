@@ -193,4 +193,22 @@ public class OrderService implements IOrderService{
         }
         return null;
     }
+
+    /**
+     * 独立事务：更新订单为完成状态（核心新增方法）
+     */
+    @Transactional // 独立事务，自动提交/回滚
+    public Order completeOrder(Order order) {
+        if (order == null || order.getOrderId() == null) {
+            throw new IllegalArgumentException("订单或订单ID不能为空");
+        }
+        // 1. 先查询最新订单（避免使用过时的内存对象）
+        Order latestOrder = orderMapper.findById(order.getOrderId())
+                .orElseThrow(() -> new RuntimeException("订单不存在：" + order.getOrderId()));
+        // 2. 更新状态和完成时间
+        latestOrder.setOrderStatus(OrderStatus.COMPLETED);
+        latestOrder.setCompleteTime(LocalDateTime.now());
+        // 3. 保存并返回更新后的订单
+        return orderMapper.save(latestOrder);
+    }
 }
