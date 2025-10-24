@@ -8,6 +8,7 @@ import com.example.robotdelivery.mapper.RobotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,6 +75,20 @@ public class RobotService implements IRobotService {
         robot.setRobotStatus(Robot.STATUS_FREE);
         robot.setCurrentOrder(null);
         return robotRepository.save(robot); // 方法结束后自动提交事务
+    }
+
+    /**
+     * 递增机器人的完成订单数，并持久化到数据库
+     */
+    @Transactional
+    public Robot incrementFinishedOrders(Integer robotId) {
+        Optional<Robot> robotOpt = robotRepository.findById(robotId);
+        if (robotOpt.isEmpty()) {
+            throw new RuntimeException("机器人不存在，ID：" + robotId);
+        }
+        Robot robot = robotOpt.get();
+        robot.incFinishedOrders(); // 调用实体类的递增方法
+        return robotRepository.save(robot); // 持久化到数据库
     }
 
 
