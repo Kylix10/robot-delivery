@@ -1,10 +1,8 @@
 package com.example.robotdelivery.service;
 
 import com.example.robotdelivery.mapper.PerformanceResultMapper;
-import com.example.robotdelivery.service.DeadlockSimulation;
 import com.example.robotdelivery.pojo.Order;
-import com.example.robotdelivery.service.ResourceManagerThread;
-import com.example.robotdelivery.pojo.vo.PerformanceResult;
+import com.example.robotdelivery.pojo.PerformanceResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
