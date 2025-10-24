@@ -54,30 +54,39 @@ public class DataInitializer implements ApplicationRunner {
         Map<String, List<String>> dishToIngredients = new LinkedHashMap<>();
         Map<String, Set<String>> dishToTools = new LinkedHashMap<>();
         Map<String, Integer> dishToSpace = new LinkedHashMap<>();
+        Map<String, Integer> dishToPrice = new LinkedHashMap<>();
+
 
         dishToIngredients.put("麦辣鸡腿堡", Arrays.asList("汉堡胚", "鸡肉", "生菜", "酱料"));
         dishToTools.put("麦辣鸡腿堡", Set.of("烤箱"));
         dishToSpace.put("麦辣鸡腿堡", 20);
+        dishToPrice.put("麦辣鸡腿堡",15);
 
         dishToIngredients.put("巨无霸汉堡", Arrays.asList("汉堡胚", "牛肉饼", "芝士", "生菜", "洋葱", "酸黄瓜", "酱料"));
         dishToTools.put("巨无霸汉堡", Set.of("炸锅","烤箱"));
         dishToSpace.put("巨无霸汉堡", 30);
+        dishToPrice.put("巨无霸汉堡",20);
 
         dishToIngredients.put("双层吉士汉堡", Arrays.asList("汉堡胚", "牛肉饼", "芝士", "洋葱", "酸黄瓜", "酱料"));
         dishToTools.put("双层吉士汉堡", Set.of("煎锅","烤箱"));
         dishToSpace.put("双层吉士汉堡", 25);
+        dishToPrice.put("双层吉士汉堡",15);
 
         dishToIngredients.put("汉堡包", Arrays.asList("汉堡胚","牛肉饼","洋葱","酸黄瓜","酱料"));
         dishToTools.put("汉堡包", Set.of("炸锅","煎锅"));
         dishToSpace.put("汉堡包", 15);
+        dishToPrice.put("汉堡包",10);
+
 
         dishToIngredients.put("麦乐鸡", Arrays.asList("鸡肉","淀粉","酱料"));
         dishToTools.put("麦乐鸡", Set.of("炸锅"));
         dishToSpace.put("麦乐鸡", 10);
+        dishToPrice.put("麦乐鸡",12);
 
         dishToIngredients.put("吉士蛋麦满分", Arrays.asList("汉堡胚","火腿","煎蛋","芝士","酱料"));
         dishToTools.put("吉士蛋麦满分", Set.of("炸锅","煎锅","烤箱"));
         dishToSpace.put("吉士蛋麦满分", 40);
+        dishToPrice.put("吉士蛋麦满分",18);
 
 
         for (String name : dishToIngredients.keySet()) {
@@ -102,6 +111,7 @@ public class DataInitializer implements ApplicationRunner {
             dish.setNeedFryPan(tools.contains("煎锅"));
             dish.setNeedFryPot(tools.contains("炸锅"));
             dish.setRequiredSpace(dishToSpace.getOrDefault(name, 30));
+            dish.setDish_price(dishToPrice.getOrDefault(name, 10));
 
             if (dish.getRequiredSpace() == null) dish.setRequiredSpace(30);
             dishRepository.save(dish);

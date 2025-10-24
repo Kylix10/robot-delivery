@@ -60,6 +60,9 @@ public class ResourceManagerThread extends Thread {
     private long lastPrintTime = 0;
     private static final long PRINT_INTERVAL = 500;
 
+    // 新增：算法模式-内存已完成订单列表（线程安全，供性能服务读取）
+    public static final java.util.concurrent.CopyOnWriteArrayList<Order> ALG_COMPLETED_ORDERS = new java.util.concurrent.CopyOnWriteArrayList<>();
+
     public ResourceManagerThread() {
         // 在构造器中初始化 MemoryManager，传入 Memory 对象
         this.memoryManager = new MemoryManager(workbench);
@@ -139,6 +142,9 @@ public class ResourceManagerThread extends Thread {
                         allRobots,
                         workbench
                 );
+
+                // 新增日志
+                System.out.println("订单" + order.getOrderId() + "银行家算法检查结果：" + (isSafe ? "安全，允许处理" : "不安全，放回队列"));
                 if (isSafe) {
                     //新加入执行从仓库拿取食材的路径规划 加在银行家算法后面
                     OrderScheduleResult orderScheduleResult = diskScheduler.handleOrderSchedule(order);
@@ -391,6 +397,8 @@ public class ResourceManagerThread extends Thread {
                 order.setOrderStatus(Order.OrderStatus.COMPLETED);
                 order.setCompleteTime(LocalDateTime.now());
                 orderService.save(order);
+                // 新增：将完成的订单加入算法模式内存列表
+                ALG_COMPLETED_ORDERS.add(order);
 
                 // 更新机器人状态到数据库（标记为空闲）
                 robot.setRobotStatus(Robot.STATUS_FREE);
@@ -490,7 +498,6 @@ public class ResourceManagerThread extends Thread {
 
 
 
-
         // 在队列添加完毕后，进行优先级调度
 
         PrioritySchedulingAlgorithm scheduler = new PrioritySchedulingAlgorithm(orderWaitQueue);
@@ -517,8 +524,6 @@ public class ResourceManagerThread extends Thread {
     private List<Order> deepCopyOrdersForSimulation(List<Order> originalOrders) {
         return DeadlockSimulation.deepCopyOrders(originalOrders);
     }
-
-
 
 
 }
