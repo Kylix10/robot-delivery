@@ -33,7 +33,7 @@ public class OrderGenerate {
     /**
      * 定时任务：每10秒生成10个随机订单
      */
-    //@Scheduled(fixedRate = 10000)
+    //@Scheduled(fixedRate = 100000)
     public void generateRandomOrders() {
         List<Dish> allDishes = dishMapper.findAll();
         //新增 用来加载dish的所有字段

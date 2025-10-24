@@ -221,6 +221,9 @@ public class ResourceManagerThread extends Thread {
 
         final long LOOP_DELAY = 1000;
 
+        // 2. 优先加载数据库中未处理的订单到阻塞队列
+        loadPendingOrdersFromDB();
+
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Order order = orderWaitQueue.take();
@@ -344,6 +347,45 @@ public class ResourceManagerThread extends Thread {
         }
     }
 
+
+    // 在ResourceManagerThread类中添加（可放在waitForRobotInitialization方法后）
+    /**
+     * 从数据库加载状态为PENDING（未处理）的订单，加入阻塞队列
+     */
+    private void loadPendingOrdersFromDB() {
+        try {
+            // 1. 调用OrderService查询数据库中未处理的订单
+            List<Order> pendingOrders = orderService.findOrdersByStatus(Order.OrderStatus.PENDING);
+            if (pendingOrders.isEmpty()) {
+                System.out.println("数据库中无未处理（PENDING）订单，无需加载");
+                return;
+            }
+
+            // 2. 将未处理订单逐个加入阻塞队列
+            for (Order order : pendingOrders) {
+                // 空指针防护：确保订单和菜品非空
+                if (order == null || order.getDish() == null || order.getDish().getRequiredSpace() == null) {
+                    System.out.println("跳过无效未处理订单，ID：" + (order != null ? order.getOrderId() : "未知"));
+                    continue;
+                }
+                orderWaitQueue.put(order); // 加入队列（FIFO，先加载的先处理）
+                System.out.println("已加载数据库未处理订单：ID=" + order.getOrderId() + "，状态=" + order.getOrderStatus());
+            }
+
+            // 3. 加载完成后，对队列进行优先级排序（和新订单逻辑一致）
+            PrioritySchedulingAlgorithm scheduler = new PrioritySchedulingAlgorithm(orderWaitQueue);
+            scheduler.sortQueue();
+            System.out.println("共加载 " + pendingOrders.size() + " 个未处理订单，已完成优先级排序");
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("加载未处理订单时被中断：" + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("加载未处理订单失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     private boolean allocateResource(Robot robot, Order order) {
         // 使用resourceLock保证内存资源分配的原子性（工具、工作台等）
         synchronized (resourceLock) {
@@ -425,33 +467,36 @@ public class ResourceManagerThread extends Thread {
                         System.out.println("炸锅" + fryPot.getToolId() + "预分配成功");
                     }
 
-                    // 5. 调用路径规划服务
-                    // System.out.println("[资源分配] 调用PlanningService生成路径规划结果：");
-                    // planningService.planForLatestOrders();
+                // 5. 调用路径规划服务
+               // System.out.println("[资源分配] 调用PlanningService生成路径规划结果：");
+               // planningService.planForLatestOrders();
 
-                    // 3. 调用 RobotService 完成机器人状态更新（核心修改）
-                    Robot updatedRobot = robotService.updateRobotToBusy(robot.getRobotId(), order);
-                    syncRobotToMemory(updatedRobot); // 同步内存状态
-                    robot.setCurrentOrder(order); // 同步传入的 robot 对象
+                // 3. 调用 RobotService 完成机器人状态更新（核心修改）
+                Robot updatedRobot = robotService.updateRobotToBusy(robot.getRobotId(), order);
+                syncRobotToMemory(updatedRobot); // 同步内存状态
+                robot.setCurrentOrder(order); // 同步传入的 robot 对象
 
-                    System.out.println("机器人" + robot.getRobotId() + "分配资源成功，事务已提交");
-                    return true;
+                // 3. 新增：将订单状态从PENDING改为COOKING（标记为已分配）
+                Order cookingOrder = orderService.updateOrderToCooking(order);
+                System.out.println("订单" + cookingOrder.getOrderId() + "状态更新为：" + cookingOrder.getOrderStatus());
 
-                } catch (ObjectOptimisticLockingFailureException e) {
-                    // 捕获乐观锁冲突异常（版本号不匹配）
-                    System.err.println("资源分配冲突：机器人" + robot.getRobotId() + "被其他事务修改，触发回滚");
-                    rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
-                    // 将订单放回队列，等待重试
-                    orderWaitQueue.offer(order);
-                    return false;
-                } catch (Exception e) {
-                    // 其他异常（如机器人已被占用、数据库错误等）
-                    System.err.println("资源分配异常，触发回滚: " + e.getMessage());
-                    rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
-                    // 非冲突异常，可根据需要决定是否放回队列
-                    orderWaitQueue.offer(order);
-                    return false;
-                }
+                System.out.println("机器人" + robot.getRobotId() + "分配资源成功，事务已提交");
+                return true;
+            } catch (ObjectOptimisticLockingFailureException e) {
+                // 捕获乐观锁冲突异常（版本号不匹配）
+                System.err.println("资源分配冲突：机器人" + robot.getRobotId() + "被其他事务修改，触发回滚");
+                rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
+                // 将订单放回队列，等待重试
+                orderWaitQueue.offer(order);
+                return false;
+            } catch (Exception e) {
+                // 其他异常（如机器人已被占用、数据库错误等）
+                System.err.println("资源分配异常，触发回滚: " + e.getMessage());
+                rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
+                // 非冲突异常，可根据需要决定是否放回队列
+                orderWaitQueue.offer(order);
+                return false;
+            }
             }
 
         }
@@ -596,16 +641,24 @@ public class ResourceManagerThread extends Thread {
     private void simulateOrderProcessing(Robot robot, Order order) {
         new Thread(() -> {
             try {
-                System.out.println("订单" + order.getOrderId() + "开始制作，占用机器人" + robot.getRobotId());
-                Thread.sleep(100); // 延长模拟时间，确保释放逻辑执行
-                System.out.println("订单" + order.getOrderId() + "制作完成，开始释放机器人" + robot.getRobotId());
-                releaseResource(robot); // 强制释放
+                // 获取当前订单的菜品
+                Dish dish = order.getDish();
+                // 获取菜品的制作时间（毫秒），若为null则用默认值（如500ms）
+                long cookTime = dish.getCookTime() != null ? dish.getCookTime() : 500L;
+
+                System.out.println("订单" + order.getOrderId() + "（菜品：" + dish.getDishName() + "）开始制作，预计耗时" + cookTime + "ms，占用机器人" + robot.getRobotId());
+
+                // 关键修改：使用菜品的制作时间作为休眠时长
+                Thread.sleep(cookTime);
+
+                System.out.println("订单" + order.getOrderId() + "（菜品：" + dish.getDishName() + "）制作完成，开始释放机器人" + robot.getRobotId());
+                releaseResource(robot); // 制作完成后释放资源
                 System.out.println("机器人" + robot.getRobotId() + "释放完成，状态已更新为空闲");
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                // 中断时强制释放机器人
+                // 中断中断时强制释放机器人
                 releaseResource(robot);
-                System.err.println("订单处理中断，已强制释放机器人" + robot.getRobotId());
+                System.err.println("订单" + order.getOrderId() + "处理中断，已强制释放机器人" + robot.getRobotId());
             }
         }, "Order-Processing-" + order.getOrderId()).start();
     }
