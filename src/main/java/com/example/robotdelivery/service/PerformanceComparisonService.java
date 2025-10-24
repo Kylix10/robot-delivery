@@ -13,6 +13,9 @@ public class PerformanceComparisonService {
     @Autowired
     private PerformanceResultMapper performanceResultMapper; // 或JPA的Repository
 
+    // 在 ResourceManagerThread 的成员变量区域添加
+
+
     // 聚合两种模式的最新性能数据
     public PerformanceComparisonDTO getLatestComparisonData() {
         PerformanceComparisonDTO result = new PerformanceComparisonDTO();

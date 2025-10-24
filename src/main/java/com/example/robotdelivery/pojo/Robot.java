@@ -46,7 +46,19 @@ public class Robot {
     public static final Integer STATUS_BUSY = 1;
 
 
+    // 乐观锁版本号（数据库需同步添加该字段）
+    @Version
+    @Column(name = "version")
+    private Integer version;
 
+    // 新增 getter/setter
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
 
     // 所有 Getter/Setter 方法不变...
     public Integer getRobotStatus() { return robotStatus; }

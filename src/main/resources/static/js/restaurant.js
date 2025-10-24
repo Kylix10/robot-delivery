@@ -469,6 +469,15 @@ function initNavigation() {
         createNewOrder();
         $('#new-order-modal').modal('hide');
     });
+
+    // *新增：路径规划页面
+    $('#nav-path-planning').click(function(e) {
+        e.preventDefault();
+        showPage('path-planning-page');
+        setActiveNav('nav-path-planning');
+        // 初始化路径规划页面
+        initPathPlanning();
+    });
 }
 
 // 显示指定页面
@@ -907,4 +916,329 @@ function renderAlgorithmComparisonChart() {
             }
         }
     });
+}
+// 路径规划相关变量
+let requestPositions = [];
+let warehouseData = {};
+let lastSchedule = null;
+let animation = {
+    points: [],
+    progressIndex: 0,
+    min: 0,
+    max: 0,
+    interval: null,
+    speed: 1
+};
+
+// 路径规划API接口配置
+const pathPlanningApi = {
+    warehouse: `${API_BASE}/warehouse`,
+    random: `${API_BASE}/requests/random`,
+    schedule: `${API_BASE}/schedule`
+};
+
+// 初始化路径规划页面
+function initPathPlanning() {
+    // 加载仓库数据
+    loadWarehouse();
+
+    // 绑定按钮事件
+    $('#btn-generate').click(generateRequests);
+    $('#btn-run').click(runSchedule);
+    $('#btn-play').click(playAnimation);
+    $('#btn-pause').click(pauseAnimation);
+    $('#btn-step').click(stepAnimation);
+    $('#btn-reset').click(resetAnimation);
+    $('#btn-compare').click(runCompare);
+    $('#speed').change(function() {
+        animation.speed = parseFloat($(this).val());
+        if (animation.interval) {
+            pauseAnimation();
+            playAnimation();
+        }
+    });
+}
+
+// 工具函数：获取DOM元素
+function el(id) {
+    return document.getElementById(id);
+}
+
+// 清除路径显示
+function clearLane(lane) {
+    while (lane.firstChild) {
+        if (!lane.firstChild.classList.contains('tick') && !lane.firstChild.classList.contains('tick-label')) {
+            lane.removeChild(lane.firstChild);
+        } else {
+            lane.removeChild(lane.firstChild);
+        }
+    }
+}
+
+// 计算边界
+function laneBounds(positions) {
+    if (positions.length === 0) return { min: 0, max: 10 };
+    return {
+        min: Math.min(...positions),
+        max: Math.max(...positions)
+    };
+}
+
+// 绘制刻度
+function drawTicks(lane, min, max) {
+    const width = lane.clientWidth - 16;
+    const ticks = 10;
+    const step = (max - min) / ticks;
+
+    for (let i = 0; i <= ticks; i++) {
+        const value = min + (step * i);
+        const x = 8 + (i / ticks) * width;
+
+        const tick = document.createElement('div');
+        tick.className = 'tick';
+        tick.style.left = `${x}px`;
+        lane.appendChild(tick);
+
+        const label = document.createElement('div');
+        label.className = 'tick-label';
+        label.style.left = `${x}px`;
+        label.textContent = Math.round(value);
+        lane.appendChild(label);
+    }
+}
+
+// 绘制点
+function drawPoints(lane, positions, min, max, color) {
+    const width = lane.clientWidth - 16;
+    positions.forEach(pos => {
+        const ratio = (pos - min) / (max - min || 1);
+        const x = 8 + (ratio * width);
+
+        const point = document.createElement('div');
+        point.className = 'point';
+        point.style.left = `${x}px`;
+        point.style.backgroundColor = color;
+        lane.appendChild(point);
+
+        const label = document.createElement('div');
+        label.className = 'point label';
+        label.style.left = `${x}px`;
+        label.textContent = pos;
+        lane.appendChild(label);
+    });
+}
+
+// 加载仓库数据
+async function loadWarehouse() {
+    try {
+        const res = await fetch(pathPlanningApi.warehouse);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        warehouseData = await res.json();
+        const positions = Object.keys(warehouseData).map(Number);
+        const lane = el('warehouse');
+        clearLane(lane);
+        const { min, max } = laneBounds(positions);
+        drawTicks(lane, min, max);
+        drawPoints(lane, positions, min, max, '#888');
+    } catch (error) {
+        console.error("加载仓库数据失败:", error);
+    }
+}
+
+// 生成随机请求
+async function generateRequests() {
+    try {
+        const count = Number(el('count').value || 6);
+        const res = await fetch(`${pathPlanningApi.random}?count=${count}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        requestPositions = await res.json();
+        const lane = el('requests');
+        clearLane(lane);
+        const { min, max } = laneBounds(requestPositions);
+        drawTicks(lane, min, max);
+        drawPoints(lane, requestPositions, min, max, '#888');
+    } catch (error) {
+        console.error("生成请求失败:", error);
+    }
+}
+
+// 运行调度
+async function runSchedule() {
+    try {
+        const algorithm = el('algorithm').value;
+        el('alg-label').textContent = algorithm;
+        const initial = Number(el('initial').value || 0);
+
+        const res = await fetch(`${pathPlanningApi.schedule}?algorithm=${algorithm}&initialPosition=${initial}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestPositions)
+        });
+
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+
+        const lane = el('path');
+        clearLane(lane);
+        const positions = [...requestPositions, initial];
+        const { min, max } = laneBounds(positions);
+        drawTicks(lane, min, max);
+        drawPoints(lane, requestPositions, min, max, '#888');
+
+        // 保存并展示关键信息
+        lastSchedule = { data, initial, min, max };
+        updateScheduleInfo(lastSchedule);
+    } catch (error) {
+        console.error("运行调度失败:", error);
+    }
+}
+
+// 更新调度信息显示
+function updateScheduleInfo(schedule) {
+    const { data, initial, min, max } = schedule;
+    const endPos = (data.processedOrder && data.processedOrder.length)
+        ? data.processedOrder[data.processedOrder.length - 1]
+        : initial;
+
+    el('info-start').textContent = String(initial);
+    el('info-end').textContent = String(endPos);
+    el('info-distance').textContent = String(data.totalDistance);
+
+    // 估算时间
+    const lane = el('path');
+    const basePixelsPerSec = 120, widthPx = lane.clientWidth;
+    const spanPx = Math.max(1, widthPx - 16);
+    const domain = Math.max(1, max - min);
+    const pixelsPerUnit = spanPx / domain;
+    const px = (data.totalDistance || 0) * pixelsPerUnit;
+    const seconds = px / basePixelsPerSec;
+    el('info-time').textContent = `${seconds.toFixed(2)} s (1x)`;
+
+    // 显示结果详情
+    el('result').textContent = [
+        `算法: ${data.algorithmName}`,
+        `处理顺序: ${JSON.stringify(data.processedOrder)}`,
+        `每步距离: ${JSON.stringify(data.stepDistances)}`,
+        `总距离: ${data.totalDistance}`,
+        ...(data.stepDetails || [])
+    ].join('\n');
+}
+
+// 动画控制函数
+function playAnimation() {
+    if (!lastSchedule || animation.interval) return;
+
+    animation = {
+        ...lastSchedule,
+        progressIndex: 0,
+        interval: setInterval(() => {
+            stepAnimation();
+        }, 1000 / animation.speed)
+    };
+}
+
+function pauseAnimation() {
+    if (animation.interval) {
+        clearInterval(animation.interval);
+        animation.interval = null;
+    }
+}
+
+function stepAnimation() {
+    if (!lastSchedule) return;
+
+    const lane = el('path');
+    const head = document.getElementById('anim-head') || document.createElement('div');
+    if (!document.getElementById('anim-head')) {
+        head.id = 'anim-head';
+        head.className = 'head';
+        lane.appendChild(head);
+    }
+
+    const { data, min, max } = lastSchedule;
+    if (!data.processedOrder || animation.progressIndex >= data.processedOrder.length - 1) {
+        pauseAnimation();
+        return;
+    }
+
+    const width = lane.clientWidth;
+    const from = animation.progressIndex === 0 ? lastSchedule.initial : data.processedOrder[animation.progressIndex - 1];
+    const to = data.processedOrder[animation.progressIndex];
+
+    const xFrom = 8 + ((from - min) / (max - min || 1)) * (width - 16);
+    const xTo = 8 + ((to - min) / (max - min || 1)) * (width - 16);
+
+    head.style.left = `${xTo}px`;
+
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.style.left = `${Math.min(xFrom, xTo)}px`;
+    seg.style.width = `${Math.abs(xTo - xFrom)}px`;
+    lane.appendChild(seg);
+
+    animation.progressIndex++;
+}
+
+function resetAnimation() {
+    pauseAnimation();
+    const lane = el('path');
+    const head = document.getElementById('anim-head');
+    if (head) lane.removeChild(head);
+    document.querySelectorAll('.seg').forEach(seg => seg.remove());
+    animation.progressIndex = 0;
+}
+
+// 算法对比
+async function runCompare() {
+    try {
+        const initial = Number(el('initial').value || 0);
+        const body = el('comparison-results');
+        body.innerHTML = '';
+        const algos = ['FCFS', 'SSTF', 'SCAN'];
+
+        const requests = requestPositions;
+        if (requests.length === 0) {
+            alert('请先生成请求位置');
+            return;
+        }
+
+        // 并行请求三种算法结果
+        const calls = algos.map(algo =>
+            fetch(`${pathPlanningApi.schedule}?algorithm=${algo}&initialPosition=${initial}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requests)
+            }).then(r => r.json().then(data => ({ algo, data })))
+        );
+
+        const results = await Promise.all(calls);
+        const positions = [...requests, initial];
+        const { min, max } = laneBounds(positions);
+        const lane = el('path');
+        const spanPx = Math.max(1, lane.clientWidth - 16);
+        const domain = Math.max(1, max - min);
+        const pixelsPerUnit = spanPx / domain;
+        const basePixelsPerSec = 120;
+
+        // 显示对比结果
+        results.forEach(({ algo, data }) => {
+            const endPos = (data.processedOrder && data.processedOrder.length)
+                ? data.processedOrder[data.processedOrder.length - 1]
+                : initial;
+            const px = (data.totalDistance || 0) * pixelsPerUnit;
+            const sec = px / basePixelsPerSec;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${algo}</td>
+                <td>${JSON.stringify(data.processedOrder)}</td>
+                <td>${data.totalDistance}</td>
+                <td>${endPos}</td>
+                <td>${sec.toFixed(2)}s</td>
+            `;
+            body.appendChild(tr);
+        });
+    } catch (error) {
+        console.error("算法对比失败:", error);
+    }
 }
