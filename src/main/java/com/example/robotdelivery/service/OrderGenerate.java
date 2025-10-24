@@ -36,10 +36,26 @@ public class OrderGenerate {
     //@Scheduled(fixedRate = 10000)
     public void generateRandomOrders() {
         List<Dish> allDishes = dishMapper.findAll();
+        //新增 用来加载dish的所有字段
+        for (Dish dish : allDishes) {
+            // 显式访问所有需要的字段，触发Hibernate加载
+            dish.getDishName();
+            dish.getDish_price();
+            dish.getNeedOven();
+            dish.getNeedFryPan();
+            dish.getNeedFryPot();
+            dish.getRequiredSpace();
+            dish.getCookTime();
+        }
         if (allDishes.isEmpty()) {
             System.out.println("[定时] 当前没有可用菜品，无法生成订单。");
             return;
         }
+
+         // 打印验证：确保dish_price有值
+                for (Dish dish : allDishes) {
+                    System.out.println("菜品：" + dish.getDishName() + "，价格：" + dish.getDish_price() + "元");
+                }
 
 
         List<Order> createdOrders = new ArrayList<>();

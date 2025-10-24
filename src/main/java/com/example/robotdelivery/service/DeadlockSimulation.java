@@ -16,7 +16,8 @@ import java.time.LocalDateTime;
  */
 public class DeadlockSimulation
 {
-
+    // 新增：线程安全的静态列表，存默认模式已完成的订单（供性能服务读取）
+    public static final java.util.concurrent.CopyOnWriteArrayList<Order> COMPLETED_ORDERS = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final List<Order> orders;
     private final List<Robot> robots;
     private final List<Tools> tools;
@@ -53,11 +54,13 @@ public class DeadlockSimulation
             newDish.setNeedFryPan(origDish.getNeedFryPan());
             newDish.setNeedFryPot(origDish.getNeedFryPot());
             newDish.setCookTime(origDish.getCookTime());
+            newDish.setDish_price(origDish.getDish_price());
 
             Order newOrder = new Order();
             newOrder.setOrderId(o.getOrderId());
             newOrder.setDish(newDish);
             newOrder.setCreateTime(o.getCreateTime());
+            newOrder.setPriority(o.getPriority());
 
             copied.add(newOrder);
         }
@@ -221,6 +224,8 @@ public class DeadlockSimulation
             Thread.sleep(dish.getCookTime());
             order.setCompleteTime(LocalDateTime.now());
             Thread.sleep(dish.getCookTime());
+            //新增 将完成的订单加入静态列表
+            COMPLETED_ORDERS.add(order);
         }
         catch (InterruptedException e)
         {
