@@ -12,7 +12,7 @@ public class RobotInitFlag {
     private Integer id;
 
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean isInitialized = false; // 是否已初始化
+    private Boolean initialized = false; // 是否已初始化
 
     private LocalDateTime initTime; // 初始化时间
 
@@ -24,8 +24,8 @@ public class RobotInitFlag {
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
-    public Boolean getInitialized() { return isInitialized; }
-    public void setInitialized(Boolean initialized) { isInitialized = initialized; }
+    public Boolean getInitialized() { return initialized; }
+    public void setInitialized(Boolean initialized) { this.initialized = initialized; }
 
     public LocalDateTime getInitTime() { return initTime; }
     public void setInitTime(LocalDateTime initTime) { this.initTime = initTime; }
