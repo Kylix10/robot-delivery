@@ -66,14 +66,14 @@ public class RobotDeliveryApplication {
 
         //3. 等待订单处理（根据订单数量调整时间，10个订单约需10秒）
         System.out.println("等待资源管理器处理订单...");
-        TimeUnit.SECONDS.sleep(10);
+        //TimeUnit.SECONDS.sleep(10);
         // 3. 验证资源管理器的处理状态
         System.out.println("\n===== 测试结束时的资源状态 =====");
         resourceManager.printQueue(); // 打印剩余等待队列
         System.out.println("===============================");
 
         // 4. 停止资源管理线程
-        resourceManager.interrupt();
+        // resourceManager.interrupt();
     }
 
 }
