@@ -553,6 +553,8 @@ public class ResourceManagerThread extends Thread {
                 // 步骤3：事务逻辑修改（核心！只保留 finalOrder，删除 finalRobot/finalDish）
                 final Order finalOrder = order;
 
+
+
 // 步骤3：调用独立事务方法完成订单和机器人状态更新（核心修改）
                 try {
                     if (order != null) {
@@ -567,6 +569,12 @@ public class ResourceManagerThread extends Thread {
                             System.out.println("数据库中订单" + dbOrder.getOrderId() + "真实状态：" + dbOrder.getOrderStatus());
                             System.out.println("数据库中完成时间：" + dbOrder.getCompleteTime());
                         }
+
+                        // 调用计数方法，持久化到数据库
+                        Robot updatedRobot = robotService.incrementFinishedOrders(robotId);
+                        syncRobotToMemory(updatedRobot);
+                        System.out.println("机器人" + robotId + "完成订单数更新为：" + updatedRobot.getFinishedOrders());
+
                     }
 
                     // 机器人设为空闲
