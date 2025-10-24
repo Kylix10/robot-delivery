@@ -172,6 +172,20 @@ public class OrderService implements IOrderService{
     public List<Order> listByCreateTimeRange(LocalDateTime start, LocalDateTime end) {
         return orderMapper.findByCreateTimeBetween(start, end);
     }
+    // 新增：查询指定状态的订单
+    public List<Order> findOrdersByStatus(Order.OrderStatus status) {
+        return orderMapper.findByOrderStatus(status);
+    }
+
+
+    // 新增：将订单状态改为“制作中”（枚举类型）
+    @Transactional
+    public Order updateOrderToCooking(Order order) {
+        order.setOrderStatus(Order.OrderStatus.PROCESSING); // 对应枚举中的“制作中”状态
+        return orderMapper.save(order);
+    }
+
+
 
     // 按创建时间升序取全部
     public List<Order> listAllOrderByCreateTimeAsc() {
