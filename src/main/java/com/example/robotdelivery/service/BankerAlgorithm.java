@@ -10,6 +10,7 @@ import com.example.robotdelivery.pojo.Robot;
 import com.example.robotdelivery.pojo.Tools;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,10 +60,10 @@ public class BankerAlgorithm {
         copy.setRobotId(realRobot.getRobotId());
         copy.setRobotStatus(realRobot.getRobotStatus());
         copy.setCurrentOrder(realRobot.getCurrentOrder());
-        copy.setOccupiedOven(realRobot.getOccupiedOven() != null ? copyTools(Arrays.asList(realRobot.getOccupiedOven())).get(0) : null);
-        copy.setOccupiedFryPan(realRobot.getOccupiedFryPan() != null ? copyTools(Arrays.asList(realRobot.getOccupiedFryPan())).get(0) : null);
+        copy.setOccupiedOven(realRobot.getOccupiedOven() != null ? copyTools(Collections.singletonList(realRobot.getOccupiedOven())).get(0) : null);
+        copy.setOccupiedFryPan(realRobot.getOccupiedFryPan() != null ? copyTools(Collections.singletonList(realRobot.getOccupiedFryPan())).get(0) : null);
         // 新增：炸锅副本复制
-        copy.setOccupiedFryPot(realRobot.getOccupiedFryPot() != null ? copyTools(Arrays.asList(realRobot.getOccupiedFryPot())).get(0) : null);
+        copy.setOccupiedFryPot(realRobot.getOccupiedFryPot() != null ? copyTools(Collections.singletonList(realRobot.getOccupiedFryPot())).get(0) : null);
 
         return copy;
     }

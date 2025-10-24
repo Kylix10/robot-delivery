@@ -100,30 +100,12 @@ public class OrderController {
 
     /**
      * 统一响应格式类（内部静态类，避免前端处理不同格式的响应）
-     * @param <T> 响应数据类型
+     *
+     * @param <T>     响应数据类型
+     * @param code    状态码（200=成功，404=未找到，500=服务器错误等）
+     * @param message 提示消息（成功/错误描述）
+     * @param data    响应数据（成功时返回，错误时为null）
      */
-    public static class ApiResponse<T> {
-        private int code;       // 状态码（200=成功，404=未找到，500=服务器错误等）
-        private String message;  // 提示消息（成功/错误描述）
-        private T data;         // 响应数据（成功时返回，错误时为null）
-
-        public ApiResponse(int code, String message, T data) {
-            this.code = code;
-            this.message = message;
-            this.data = data;
-        }
-
-        // Getters（前端需通过getter获取字段，必须提供）
-        public int getCode() {
-            return code;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public T getData() {
-            return data;
-        }
+        public record ApiResponse<T>(int code, String message, T data) {
     }
 }

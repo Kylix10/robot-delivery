@@ -15,6 +15,7 @@
             --macaron-blue: #A8DADC;        /* 马卡龙蓝 */
             --macaron-blue-dark: #5F9EA0;
             --macaron-green: #C7CEEA;       /* 马卡龙绿 */
+            --macaron-green-dark: #4f6550;       /* 马卡龙绿 */
             --macaron-pink: #FFCAD4;        /* 马卡龙粉 */
             --macaron-pink-dark: #D64933;
             --macaron-yellow: #FFE5D9;      /* 马卡龙黄 */
@@ -87,10 +88,16 @@
         body {
             color: var(--text-color);
             background-color: #FFF9F5;      /* 温暖的浅底色，增强食欲感 */
+            display: flex;                /* 新增: 启用 Flexbox */
+            flex-direction: column;       /* 新增: 垂直排列子元素 */
+            min-height: 100vh;            /* 新增: body 至少占据整个视口高度 */
         }
 
         .content-area {
-            min-height: calc(100vh - 120px);
+            /* min-height: calc(100vh - 120px);  <-- 注释掉，使用 Flexbox 替代 */
+            flex-grow: 1;                 /* 新增: 让内容区域占据所有剩余空间 */
+            display: flex;                /* 新增: 确保内容区内部的页面也能撑开 */
+            flex-direction: column;
         }
 
         .status-badge {
@@ -281,6 +288,59 @@
             border-radius: 4px;
             font-size: 14px;
         }
+
+        /* 新增/修改：路径规划相关样式统一 */
+
+        /* 统一输入框/选择框边框颜色 */
+        .card-body input[type="number"],
+        .card-body select {
+            border-color: var(--macaron-green);
+            border-radius: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .card-body input[type="number"]:focus,
+        .card-body select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(199, 206, 234, 0.5); /* 使用 macaron-green 的淡化色 */
+            border-color: var(--macaron-green-dark);
+        }
+
+        .controls .group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* 统一 lane/path 容器的卡片内联样式，使其与卡片背景一致 */
+        .lane-card-style {
+            background-color: white !important; /* 确保背景色统一 */
+            border: 1px solid #F0E6E0 !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 增加轻微阴影 */
+            border-radius: 0.5rem;
+            padding: 8px; /* 增加内边距 */
+        }
+
+        /* 统一路径点的样式 */
+        .point {
+            background: var(--macaron-gray-dark); /* 统一使用深灰色 */
+        }
+        .point.label {
+            color: var(--text-color);
+        }
+        .head {
+            background: var(--macaron-pink-dark); /* 突出机械臂用深粉色 */
+        }
+        .seg {
+            background: var(--macaron-pink); /* 突出路径用粉色 */
+        }
+        .tick {
+            background: #ccc;
+            height: 15px; /* 减小刻度高度 */
+        }
+        .tick-label {
+            bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -313,6 +373,12 @@
                     <li class="nav-item">
                         <a class="nav-link" id="nav-memory" href="#memory" style="color: var(--text-color);">
                             <i class="fas fa-microchip me-1"></i>内存分配
+                        </a>
+                    </li>
+                    <!-- 在原有导航项后添加路径规划页面 -->
+                    <li class="nav-item">
+                        <a class="nav-link" id="nav-path-planning" href="#path-planning" style="color: var(--text-color);">
+                            <i class="fas fa-route me-1"></i>路径规划
                         </a>
                     </li>
                 </ul>
@@ -719,7 +785,105 @@
             </div>
         </div>
     </div>
+    <div id="path-planning-page" class="page-content d-none">
+        <!-- 增加页面整体留白，通过容器控制内外边距 -->
+        <div style="padding: 10px 60px;">
+            <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-route me-2"></i>            食材拿取路径规划
+            </h2>
 
+            <!-- 主内容卡片，包含所有页面内容 -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body" style="padding: 25px;">
+
+
+                    <hr class="my-3">
+
+                    <div class="d-flex flex-wrap align-items-center mb-4">
+                        <div class="d-flex align-items-center me-4 mb-2">
+                            <label class="d-flex align-items-center me-3">播放速度
+                                <select id="speed" class="form-select form-select-sm ms-2" style="width: 100px;">
+                                    <option value="0.5">0.5x</option>
+                                    <option value="1" selected>1x</option>
+                                    <option value="2">2x</option>
+                                    <option value="4">4x</option>
+                                </select>
+                            </label>
+
+                            <div class="btn-group" role="group">
+                                <button id="btn-play" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-pink); color: #D64933;">
+                                    <i class="fas fa-play"></i> 播放
+                                </button>
+                                <button id="btn-pause" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-yellow); color: #E67E22;">
+                                    <i class="fas fa-pause"></i> 暂停
+                                </button>
+                                <button id="btn-step" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-orange); color: #DAA520;">
+                                    <i class="fas fa-forward"></i> 单步
+                                </button>
+                                <button id="btn-reset" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-purple); color: white;">
+                                    <i class="fas fa-undo"></i> 重置
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="ms-auto mb-2">
+                            <button id="btn-compare" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-blue-dark); color: white;">
+                                <i class="fas fa-balance-scale-left me-1"></i>一键对比所有算法
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 算法对比板块卡片化 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-chart-bar me-2"></i>算法对比（同一批请求）</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th>算法</th>
+                                    <th>处理顺序</th>
+                                    <th>总距离</th>
+                                    <th>结束位置</th>
+                                </tr>
+                                </thead>
+                                <tbody id="comparison-results">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="legend mt-4 mb-3">
+                        <span class="badge" style="background-color: var(--macaron-pink-dark); color: white;">机械臂位置</span>
+                        <span class="badge" style="background-color: var(--macaron-gray-dark); color: white;">请求位置</span>
+                        <span class="badge" style="background-color: var(--macaron-pink); color: #D64933;">规划路径</span>
+                    </div>
+
+                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-warehouse me-2"></i>仓库分布 (0-100)</h5>
+                    <div id="warehouse" class="lane lane-card-style p-3"></div>
+
+                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-box-open me-2"></i>请求位置</h5>
+                    <div id="requests" class="lane lane-card-style p-3"></div>
+
+                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-route me-2"></i>调度路径（<span id="alg-label">FCFS</span>）</h5>
+                    <div id="path" class="lane lane-card-style p-3"></div>
+
+                    <div class="d-flex justify-content-start align-items-center mt-3 mb-3 p-3 rounded" style="background-color: var(--macaron-tyellow); border: 1px dashed #E67E22;">
+                        <div>初始位置：<b id="info-start">-</b></div>
+                        <div class="ms-4">结束位置：<b id="info-end">-</b></div>
+                        <div class="ms-4">总距离：<b id="info-distance">-</b></div>
+                    </div>
+
+                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-file-alt me-2"></i>调度结果（处理顺序）</h5>
+                    <div id="result" class="result p-3 rounded" style="background-color: var(--macaron-light); border: 1px solid #E9ECEF;">
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- 页脚 -->
     <footer class="py-3" style="background-color: var(--macaron-yellow); color: #E67E22;">
         <div class="container text-center">
