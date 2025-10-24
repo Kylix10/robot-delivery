@@ -48,7 +48,7 @@ public class Dish {
     )
     private List<Ingredient> ingredients = new ArrayList<>();
 
-
+    @Column(name = "cook_time", nullable = false)
     private Long cookTime; //     做菜需要的时间，这个属性是不是忘记定义了！！！！！，目前我这边单位用的毫秒
 
 
@@ -56,13 +56,14 @@ public class Dish {
     public Dish() {}
 
     // 可选：构造器初始化名字、类型和工具
-    public Dish(String dishName, String dishType, Boolean needOven, Boolean needFryPan, Boolean needFryPot,Integer dish_price) {
+    public Dish(String dishName, String dishType, Boolean needOven, Boolean needFryPan, Boolean needFryPot,Integer dish_price,Long dishCooktime) {
         this.dishName = dishName;
         this.dishType = dishType;
         this.needOven = needOven;
         this.needFryPan = needFryPan;
         this.needFryPot = needFryPot;
         this.dish_price = dish_price;
+        this.cookTime=dishCooktime;
     }
 
     // getters & setters方法
