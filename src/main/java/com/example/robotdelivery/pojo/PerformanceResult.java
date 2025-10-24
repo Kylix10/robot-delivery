@@ -1,4 +1,4 @@
-package com.example.robotdelivery.pojo.vo;
+package com.example.robotdelivery.pojo;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;

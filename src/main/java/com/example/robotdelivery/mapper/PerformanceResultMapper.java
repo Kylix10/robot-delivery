@@ -1,6 +1,6 @@
 package com.example.robotdelivery.mapper;
 //用来比较算法性能的类的接口
-import com.example.robotdelivery.pojo.vo.PerformanceResult;
+import com.example.robotdelivery.pojo.PerformanceResult;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
