@@ -3,6 +3,7 @@ package com.example.robotdelivery.service;
 import com.example.robotdelivery.mapper.RobotRepository;
 import com.example.robotdelivery.pojo.Robot;
 import com.example.robotdelivery.pojo.dto.RobotDto;
+import com.example.robotdelivery.pojo.Order; // 新增：导入正确的Order类
 import com.example.robotdelivery.mapper.RobotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,29 @@ public class RobotService implements IRobotService {
     public List<Robot> batchSaveRobots(List<Robot> robots) {
         return robotRepository.saveAll(robots);
     }
+
+    @Transactional // 默认为 REQUIRED：若当前无事务则新建，有则加入
+    public Robot updateRobotToBusy(Integer robotId, Order order) {
+        Robot robot = robotRepository.findById(robotId)
+                .orElseThrow(() -> new RuntimeException("机器人不存在：" + robotId));
+        robot.setRobotStatus(Robot.STATUS_BUSY);
+        robot.setCurrentOrder(order);
+        return robotRepository.save(robot); // 方法结束后自动提交事务
+    }
+
+    /**
+     * 独立事务：更新机器人为空闲状态并解除订单关联
+     */
+    @Transactional
+    public Robot updateRobotToFree(Integer robotId) {
+        Robot robot = robotRepository.findById(robotId)
+                .orElseThrow(() -> new RuntimeException("机器人不存在：" + robotId));
+        robot.setRobotStatus(Robot.STATUS_FREE);
+        robot.setCurrentOrder(null);
+        return robotRepository.save(robot); // 方法结束后自动提交事务
+    }
+
+
 
 //    // 查询所有机器人
 //    public List<Robot> getAllRobots() {

@@ -13,11 +13,14 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+
+
 @Component
 public class DataInitializer implements ApplicationRunner {
 
     private final IngredientRepository ingredientRepository;
     private final DishRepository dishRepository;
+    private boolean hasInitialized = false; // 初始化标记
 
     public DataInitializer(IngredientRepository ingredientRepository, DishRepository dishRepository) {
         this.ingredientRepository = ingredientRepository;
@@ -28,6 +31,11 @@ public class DataInitializer implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
 
+        // 只执行一次初始化
+        if (hasInitialized) {
+            System.out.println("数据已初始化，跳过重复执行");
+            return;
+        }
         // 1️⃣ 初始化食材
         List<String> ingredientNames = Arrays.asList(
                 "汉堡胚", "生菜", "芝士", "洋葱", "酸黄瓜", "酱料",
@@ -107,7 +115,7 @@ public class DataInitializer implements ApplicationRunner {
             dishRepository.save(dish);
             System.out.println("✅ 已初始化菜品: " + name);
         }
-
+        hasInitialized = true; // 标记为已初始化
         System.out.println("🌟 数据初始化完成");
     }
 }

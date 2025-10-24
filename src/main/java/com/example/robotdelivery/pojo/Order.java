@@ -25,7 +25,7 @@ public class Order {
     @Column(name="order_name")
     private String orderName;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "dish_id", referencedColumnName = "dish_id")
     private Dish dish;
 

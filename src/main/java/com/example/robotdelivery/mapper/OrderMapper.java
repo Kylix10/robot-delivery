@@ -23,4 +23,7 @@ public interface OrderMapper extends JpaRepository<Order, Integer> {
     List<Order> findTop10ByOrderByCreateTimeDesc();
     // 【新增/确认】查询所有订单，并按创建时间倒序排列
     List<Order> findAllByOrderByCreateTimeDesc();
+
+
+
 }
