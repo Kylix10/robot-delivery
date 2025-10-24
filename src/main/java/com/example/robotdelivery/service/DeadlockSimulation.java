@@ -28,6 +28,9 @@ public class DeadlockSimulation
     // 线程池，用于模拟订单并行处理
     private final ExecutorService executor;
 
+    // 用作全局锁，保护机器人和工具分配
+    private final Object resourceLock = new Object();
+
     public DeadlockSimulation(List<Order> orders)
     {
         // 深拷贝订单
@@ -180,79 +183,83 @@ public class DeadlockSimulation
 
     private void attemptOrder(Order order)
     {
-        // 尝试找到空闲机器人
-        Robot freeRobot = robots.stream()
-                .filter(r -> r.getRobotStatus() == Robot.STATUS_FREE)
-                .findFirst()
-                .orElse(null);
-
-        if (freeRobot == null)
-        {
-            return;
-        }
-
-        Dish dish = order.getDish();
+        Robot freeRobot = null;
         List<Tools> allocated = new ArrayList<>();
 
-        // 检查并占用烤箱
-        if (dish.getNeedOven())
+        // 整个资源分配加锁，保证扫描+占用原子性
+        synchronized (resourceLock)
         {
-            Tools oven = tools.stream()
-                    .filter(t -> t.getToolType() == ToolType.OVEN && t.getToolStatus() == Tools.STATUS_FREE)
+            // 尝试找到空闲机器人
+            freeRobot = robots.stream()
+                    .filter(r -> r.getRobotStatus() == Robot.STATUS_FREE)
                     .findFirst()
                     .orElse(null);
 
-            if (oven == null)
+            if (freeRobot == null)
             {
                 return;
             }
 
-            oven.setToolStatus(Tools.STATUS_OCCUPIED);
-            allocated.add(oven);
-        }
+            Dish dish = order.getDish();
 
-        // 检查并占用煎锅
-        if (dish.getNeedFryPan())
-        {
-            Tools pan = tools.stream()
-                    .filter(t -> t.getToolType() == ToolType.FRY_PAN && t.getToolStatus() == Tools.STATUS_FREE)
-                    .findFirst()
-                    .orElse(null);
-
-            if (pan == null)
+            // 检查并占用烤箱
+            if (dish.getNeedOven())
             {
-                releaseTools(allocated);
-                return;
+                Tools oven = tools.stream()
+                        .filter(t -> t.getToolType() == ToolType.OVEN && t.getToolStatus() == Tools.STATUS_FREE)
+                        .findFirst()
+                        .orElse(null);
+
+                if (oven == null)
+                {
+                    return;
+                }
+
+                oven.setToolStatus(Tools.STATUS_OCCUPIED);
+                allocated.add(oven);
             }
 
-            pan.setToolStatus(Tools.STATUS_OCCUPIED);
-            allocated.add(pan);
-        }
-
-        // 检查并占用炸锅
-        if (dish.getNeedFryPot() != null && dish.getNeedFryPot())
-        {
-            Tools pot = tools.stream()
-                    .filter(t -> t.getToolType() == ToolType.FRY_POT && t.getToolStatus() == Tools.STATUS_FREE)
-                    .findFirst()
-                    .orElse(null);
-
-            if (pot == null)
+            // 检查并占用煎锅
+            if (dish.getNeedFryPan())
             {
-                releaseTools(allocated);
-                return;
+                Tools pan = tools.stream()
+                        .filter(t -> t.getToolType() == ToolType.FRY_PAN && t.getToolStatus() == Tools.STATUS_FREE)
+                        .findFirst()
+                        .orElse(null);
+
+                if (pan == null)
+                {
+                    return;
+                }
+
+                pan.setToolStatus(Tools.STATUS_OCCUPIED);
+                allocated.add(pan);
             }
 
-            pot.setToolStatus(Tools.STATUS_OCCUPIED);
-            allocated.add(pot);
-        }
+            // 检查并占用炸锅
+            if (dish.getNeedFryPot() != null && dish.getNeedFryPot())
+            {
+                Tools pot = tools.stream()
+                        .filter(t -> t.getToolType() == ToolType.FRY_POT && t.getToolStatus() == Tools.STATUS_FREE)
+                        .findFirst()
+                        .orElse(null);
 
-        freeRobot.setRobotStatus(Robot.STATUS_BUSY);
+                if (pot == null)
+                {
+                    return;
+                }
+
+                pot.setToolStatus(Tools.STATUS_OCCUPIED);
+                allocated.add(pot);
+            }
+
+            freeRobot.setRobotStatus(Robot.STATUS_BUSY);
+        }
 
         try
         {
             // 模拟烹饪
-            Thread.sleep(dish.getCookTime());
+            Thread.sleep(order.getDish().getCookTime());
             order.setCompleteTime(LocalDateTime.now());
 
             // 新增 将完成的订单加入静态列表
@@ -263,8 +270,12 @@ public class DeadlockSimulation
             Thread.currentThread().interrupt();
         }
 
-        freeRobot.setRobotStatus(Robot.STATUS_FREE);
-        releaseTools(allocated);
+        // 释放资源也要加锁
+        synchronized (resourceLock)
+        {
+            freeRobot.setRobotStatus(Robot.STATUS_FREE);
+            releaseTools(allocated);
+        }
     }
 
     private void releaseTools(List<Tools> allocated)
