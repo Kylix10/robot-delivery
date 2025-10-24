@@ -6,7 +6,7 @@ package com.example.robotdelivery.pojo;
  */
 public class MemorySnapshot {
     // 与真实Memory对应的字段（仅包含模拟分配需要的属性）
-    private int totalSpace;         // 总空间（与真实工作区一致）
+    private final int totalSpace;         // 总空间（与真实工作区一致）
     private int usedSpace;          // 模拟分配后的已用空间
     private Integer occupiedByRobotId; // 模拟占用的机器人ID
 

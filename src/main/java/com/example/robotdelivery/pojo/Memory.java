@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class Memory {
 
-    private Integer workbenchId = 1;
+    private final Integer workbenchId = 1;
     private final Integer totalSpace = 100; // 总空间固定，无需修改，用final
     private volatile Integer usedSpace = 0; // volatile保证多线程可见性
     private volatile Integer occupiedByRobotId; // volatile保证可见性
