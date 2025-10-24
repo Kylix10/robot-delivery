@@ -1,7 +1,6 @@
 package com.example.robotdelivery.service;
 
 import com.example.robotdelivery.pojo.Dish;
-import com.example.robotdelivery.pojo.GlobalConstants;
 import com.example.robotdelivery.pojo.Partition;
 import com.example.robotdelivery.pojo.Memory; // 引入 Memory 类
 import org.springframework.stereotype.Service;
