@@ -2,8 +2,10 @@ package com.example.robotdelivery.config;
 
 import com.example.robotdelivery.mapper.DishRepository;
 import com.example.robotdelivery.mapper.IngredientRepository;
+import com.example.robotdelivery.mapper.RobotRepository;
 import com.example.robotdelivery.pojo.Dish;
 import com.example.robotdelivery.pojo.Ingredient;
+import com.example.robotdelivery.pojo.Robot;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -20,6 +22,7 @@ public class DataInitializer implements ApplicationRunner {
 
     private final IngredientRepository ingredientRepository;
     private final DishRepository dishRepository;
+
     private boolean hasInitialized = false; // 初始化标记
 
     public DataInitializer(IngredientRepository ingredientRepository, DishRepository dishRepository) {
