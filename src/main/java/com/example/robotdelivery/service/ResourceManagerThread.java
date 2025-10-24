@@ -515,6 +515,8 @@ public class ResourceManagerThread extends Thread {
                     if (order != null) {
                         // 订单设为完成
                         Order completedOrder = orderService.completeOrder(order);
+                        // 核心新增：将完成的订单加入算法模式内存列表
+                        ALG_COMPLETED_ORDERS.add(completedOrder); // 这行是关键！
                         // 验证订单状态（可选）
                         Optional<Order> orderOptional = orderService.findById(completedOrder.getOrderId());
                         if (orderOptional.isPresent()) {
@@ -532,8 +534,7 @@ public class ResourceManagerThread extends Thread {
                     System.out.println("机器人" + robotId + "释放资源成功，事务已提交");
                 } catch (Exception e) {
                     System.err.println("释放资源异常：" + e.getMessage());
-                    e
-                            .printStackTrace();
+                    e.printStackTrace();
                 }
 
                 System.out.println("机器人" + robotId + "释放资源，订单" + finalOrder.getOrderId() + "完成");
