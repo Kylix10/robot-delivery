@@ -3,8 +3,10 @@ package com.example.robotdelivery.service;
 import com.example.robotdelivery.mapper.RobotRepository;
 import com.example.robotdelivery.pojo.*;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 // 导入 MemoryManager
@@ -12,6 +14,8 @@ import com.example.robotdelivery.service.MemoryManager;
 import com.example.robotdelivery.vo.OrderScheduleResult;
 import com.example.robotdelivery.service.PrioritySchedulingAlgorithm;
 // 导入乐观锁冲突异常类
+
+import com.example.robotdelivery.config.RobotInitializer; // 导入新类
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import javax.annotation.PostConstruct;
 import java.util.*;
@@ -62,6 +66,10 @@ public class ResourceManagerThread extends Thread {
     // 在 ResourceManagerThread 的成员变量区域添加
     @Autowired
     private PerformanceComparisonService performanceComparisonService; // 注入性能比较服务
+    // 新增：注入独立的初始化器
+    @Autowired
+    private RobotInitializer robotInitializer;
+
 
 
     private List<Tools> allTools;
@@ -73,6 +81,7 @@ public class ResourceManagerThread extends Thread {
 
     private long lastPrintTime = 0;
     private static final long PRINT_INTERVAL = 500;
+    private static final int TARGET_ROBOT_COUNT = 4; // 目标机器人数量：4个
 
     //新增：算法模式-内存已完成订单列表（线程安全，供性能服务读取）
     public static final java.util.concurrent.CopyOnWriteArrayList<Order> ALG_COMPLETED_ORDERS = new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -108,102 +117,107 @@ public class ResourceManagerThread extends Thread {
         this.setName("Robot-delivery-Resource-Manager");
     }
 
-    public void initRobotsAndSave() {
-        // 此时 robotRepository 已被注入，非 null
-        List<Robot> existingRobots = robotRepository.findAll();
-        if (existingRobots.isEmpty()) {
-            // 初始化机器人
-            Robot robot1 = new Robot();
-            robot1.setRobotStatus(Robot.STATUS_FREE);
-            robot1.setFinishedOrders(0);
+//    // 新增事务注解，确保初始化操作原子性
+//    @Transactional(isolation = Isolation.SERIALIZABLE)
+//    private void initRobotsAndSave() {
+//        // 关键：查询时加锁，防止其他事务修改（for update）
+//        List<Robot> existingRobots = transactionTemplate.execute(status -> {
+//            // 使用JPA的锁机制，查询时锁定记录
+//            return entityManager.createQuery("SELECT r FROM Robot r", Robot.class)
+//                    .setLockMode(LockModeType.PESSIMISTIC_WRITE) // 悲观写锁，阻止其他事务修改
+//                    .getResultList();
+//        });
+//
+//        if (existingRobots.size() < TARGET_ROBOT_COUNT) {
+//            List<Robot> robotsToAdd = new ArrayList<>();
+//            // 重新计算最大ID（基于加锁后的查询结果，确保准确）
+//            int existingMaxId = existingRobots.stream()
+//                    .mapToInt(Robot::getRobotId)
+//                    .max()
+//                    .orElse(0);
+//
+//            int needAddCount = TARGET_ROBOT_COUNT - existingRobots.size();
+//            for (int i = 1; i <= needAddCount; i++) {
+//                int newRobotId = existingMaxId + i;
+//                // 双重检查：确保新ID未被其他事务占用（极端情况防护）
+//                boolean idExists = existingRobots.stream().anyMatch(r -> r.getRobotId() == newRobotId);
+//                if (idExists) {
+//                    System.err.println("警告：ID=" + newRobotId + "已存在，自动跳过");
+//                    continue;
+//                }
+//                Robot newRobot = new Robot();
+//                newRobot.setRobotId(newRobotId);
+//                newRobot.setRobotStatus(Robot.STATUS_FREE);
+//                newRobot.setFinishedOrders(0);
+//                newRobot.setVersion(0); // 强制初始化版本号
+//                robotsToAdd.add(newRobot);
+//            }
+//
+//            if (!robotsToAdd.isEmpty()) {
+//                // 保存新增机器人（此时因加锁，不会有并发修改）
+//                List<Robot> savedRobots = robotRepository.saveAll(robotsToAdd);
+//                System.out.println("✅ 补充" + savedRobots.size() + "个机器人，新增ID：" +
+//                        savedRobots.stream().map(Robot::getRobotId).collect(Collectors.toList()));
+//                allRobots = new ArrayList<>(existingRobots);
+//                allRobots.addAll(savedRobots);
+//            } else {
+//                allRobots = existingRobots;
+//                System.out.println("无需补充机器人，当前数量：" + allRobots.size());
+//            }
+//        } else if (existingRobots.size() == TARGET_ROBOT_COUNT) {
+//            allRobots = existingRobots;
+//            System.out.println("✅ 从数据库加载4个机器人，ID：" +
+//                    existingRobots.stream().map(Robot::getRobotId).collect(Collectors.toList()));
+//        } else {
+//            System.out.println("⚠️  数据库中机器人数量超过4个（当前" + existingRobots.size() + "个），仅加载前4个");
+//            allRobots = existingRobots.stream()
+//                    .sorted(Comparator.comparingInt(Robot::getRobotId))
+//                    .limit(TARGET_ROBOT_COUNT)
+//                    .collect(Collectors.toList());
+//        }
+//    }
 
-            Robot robot2 = new Robot();
-            robot2.setRobotStatus(Robot.STATUS_FREE);
-            robot2.setFinishedOrders(0);
 
-            // 保存到数据库
-            allRobots = robotRepository.saveAll(Arrays.asList(robot1, robot2));
-            System.out.println("初始化机器人并保存到数据库");
-        } else {
-            // 从数据库加载已有机器人
-            allRobots = existingRobots;
-            System.out.println("从数据库加载机器人：" + allRobots.size() + "个");
-        }
-    }
-
-
-    private List<Robot> initRobots() {
-        List<Robot> robots = new ArrayList<>();
-
-        // 机器人1
-        Robot robot1 = new Robot();
-        robot1.setRobotId(1);
-        robot1.setRobotStatus(Robot.STATUS_FREE);
-        robot1.setFinishedOrders(0); // 初始化完成订单数
-        robots.add(robot1);
-
-        // 机器人2
-        Robot robot2 = new Robot();
-        robot2.setRobotId(2);
-        robot2.setRobotStatus(Robot.STATUS_FREE);
-        robot2.setFinishedOrders(0); // 初始化完成订单数
-        robots.add(robot2);
-
-        // 若需要初始化到数据库，取消注释
-        robotRepository.saveAll(robots);
-        return robots;
-    }
     @Override
     public void run() {
 
-        // 新增：确保 allRobots 初始化
-        if (allRobots == null || allRobots.isEmpty()) {
-            initRobotsAndSave(); // 手动调用初始化方法
-            // 重试机制（最多等3秒）
-            int retry = 0;
-            while ((allRobots == null || allRobots.isEmpty()) && retry < 30) {
-                try {
-                    Thread.sleep(100);
-                    initRobotsAndSave();
-                    retry++;
-                    System.out.println("重试初始化 allRobots（第" + retry + "次）");
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-            }
-            if (allRobots == null || allRobots.isEmpty()) {
-                System.err.println("致命错误：allRobots 初始化失败，线程终止");
-                return;
-            }
+        // 1. 等待机器人初始化完成（核心修改：使用独立初始化器）
+        waitForRobotInitialization();
+        if (allRobots == null || allRobots.size() != 4) {
+            System.err.println("致命错误：机器人初始化失败，线程终止");
+            return;
         }
+
         // 双重保障：确保 allTools 已初始化
-        // 1. 若未初始化，手动调用 ToolManager 获取工具列表
+        // 2. 初始化工具（将重试变量改为toolRetry，避免与上面的retry重名）
         if (allTools == null || allTools.isEmpty()) {
             this.allTools = toolManager.getAllToolInstances();
-            // 2. 若获取后仍为空，等待 3 秒重试（给 ToolManager 初始化时间）
-            int retry = 0;
-            while ((allTools == null || allTools.isEmpty()) && retry < 30) {
+            // 关键修改：将retry改为toolRetry
+            int toolRetry = 0;
+            while ((allTools == null || allTools.isEmpty()) && toolRetry < 30) {
                 try {
                     Thread.sleep(100);
                     this.allTools = toolManager.getAllToolInstances();
-                    retry++;
-                    System.out.println("重试获取 allTools（第" + retry + "次）");
+                    toolRetry++; // 同步修改变量名
+                    System.out.println("重试获取工具列表（第" + toolRetry + "次）"); // 同步修改变量名
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
                 }
             }
-            // 3. 重试后仍失败，直接终止线程
             if (allTools == null || allTools.isEmpty()) {
-                System.err.println("致命错误：ToolManager 未返回工具列表，资源管理线程终止");
+                System.err.println("致命错误：ToolManager 未返回工具列表，线程终止");
                 return;
             }
         }
 
 
-        System.out.println("资源管理线程启动，初始资源：2烤箱+1煎锅+2机器人+工作区" + workbench.getTotalSpace() + "空间");
-        memoryManager.printMemoryStatus(); // 打印初始工作台状态
+        // 3. 启动日志（适配4个机器人）
+        System.out.println("\n===== 资源管理线程启动成功 =====");
+        System.out.println("初始资源：" +"烤箱" +"煎锅"+"炸锅," +
+                TARGET_ROBOT_COUNT + "个机器人、工作区" + workbench.getTotalSpace() + "空间");
+        memoryManager.printMemoryStatus();
+        System.out.println("===============================\n");
 
         final long LOOP_DELAY = 1000;
 
@@ -300,6 +314,35 @@ public class ResourceManagerThread extends Thread {
         }
     }
 
+    /**
+     * 等待机器人初始化完成（带重试机制）
+     */
+    private void waitForRobotInitialization() {
+        int retry = 0;
+        while (retry < 10) { // 最多重试10次（5秒）
+            try {
+                if (robotInitializer.isInitialized()) {
+                    // 初始化已完成，直接获取机器人
+                    allRobots = robotInitializer.initRobots();
+                    return;
+                }
+                // 未完成，调用初始化方法
+                allRobots = robotInitializer.initRobots();
+                if (allRobots.size() == 4) {
+                    return;
+                }
+            } catch (Exception e) {
+                System.err.println("机器人初始化重试第" + (retry + 1) + "次，错误：" + e.getMessage());
+            }
+            retry++;
+            try {
+                Thread.sleep(500); // 等待500ms再重试
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
 
     private boolean allocateResource(Robot robot, Order order) {
         // 使用resourceLock保证内存资源分配的原子性（工具、工作台等）
@@ -566,9 +609,16 @@ public class ResourceManagerThread extends Thread {
             System.out.println("无空闲机器人（数据库实时查询）");
             return null;
         }
-        // 取第一个空闲机器人，并同步到内存 allRobots
-        Robot freeRobot = freeRobots.get(0);
-        syncRobotToMemory(freeRobot); // 同步数据库状态到内存
+        // 按机器人ID升序排序，优先选择ID小的机器人（公平分配）
+        Robot freeRobot = freeRobots.stream()
+                .sorted(Comparator.comparingInt(Robot::getRobotId))
+                .findFirst()
+                .orElse(null);
+        // 同步数据库状态到内存allRobots
+        if (freeRobot != null) {
+            syncRobotToMemory(freeRobot);
+            System.out.println("找到空闲机器人：ID=" + freeRobot.getRobotId() + "（当前空闲数量：" + freeRobots.size() + "/4）");
+        }
         return freeRobot;
     }
 
@@ -603,11 +653,15 @@ public class ResourceManagerThread extends Thread {
         System.out.println("   占用情况：" + workbenchOccupy);
 
 
-        System.out.println("3. 机器人状态：");
-        for (Robot robot : allRobots) {
-            String orderInfo = robot.getCurrentOrder() == null ? "无" : "订单" + robot.getCurrentOrder().getOrderId() + "（菜品：" + robot.getCurrentOrder().getDish().getDishName() + "）";
-            System.out.println("   机器人" + robot.getRobotId() + "：" + (robot.getRobotStatus() == Robot.STATUS_FREE ? "空闲" : "忙碌（处理" + orderInfo + "）"));
-        }
+        // 3. 4个机器人状态（按ID排序，显示详细信息）
+        System.out.println("3. 机器人状态（共4个）：");
+        allRobots.stream()
+                .sorted(Comparator.comparingInt(Robot::getRobotId))
+                .forEach(robot -> {
+                    String orderInfo = robot.getCurrentOrder() == null ? "无" : "订单" + robot.getCurrentOrder().getOrderId() + "（" + robot.getCurrentOrder().getDish().getDishName() + "）";
+                    String status = robot.getRobotStatus() == Robot.STATUS_FREE ? "✅ 空闲" : "🔴 忙碌（处理" + orderInfo + "）";
+                    System.out.println("   机器人" + robot.getRobotId() + "：" + status + "，完成订单数：" + robot.getFinishedOrders());
+                });
         System.out.println("4. 订单等待队列：" + orderWaitQueue.size() + "个订单");
         System.out.println("=======================\n");
     }
