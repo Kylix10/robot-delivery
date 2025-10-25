@@ -1446,6 +1446,7 @@ const DataRefresher = {
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化内存监控（已有定时任务）
     memoryManager.init();
+    DataRefresher.register('memory',  memoryManager.fetchMemoryStatus, 3000);
 
     // 注册订单数据定时刷新（3秒一次）
     DataRefresher.register('orders', fetchOrdersAndRender, 3000);

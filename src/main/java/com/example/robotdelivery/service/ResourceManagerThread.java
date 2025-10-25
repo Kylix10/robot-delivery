@@ -43,9 +43,6 @@ public class ResourceManagerThread extends Thread {
     @Autowired
     private PlanningService planningService; // 注入规划服务，用于复用打印逻辑
 
-    // 新增：工作台内存动态分配管理器
-    private final MemoryManager memoryManager;
-
     @Autowired
     RobotRepository robotRepository;
 
@@ -70,11 +67,18 @@ public class ResourceManagerThread extends Thread {
     @Autowired
     private RobotInitializer robotInitializer;
 
+    // 移除本地创建的workbench，改为注入Spring的单例
+    @Autowired
+    private Memory workbench;
+
+    // 移除手动创建的MemoryManager，改为注入Spring管理的MemoryManager
+    @Autowired
+    private MemoryManager memoryManager;
 
 
     private List<Tools> allTools;
     private List<Robot> allRobots; // = initRobots();
-    private final Memory workbench = new Memory();
+
     private final BlockingQueue<Order> orderWaitQueue = new LinkedBlockingQueue<>();
     private final Object resourceLock = new Object(); // 资源分配锁
 
@@ -97,10 +101,7 @@ public class ResourceManagerThread extends Thread {
 
 
 
-    public ResourceManagerThread() {
-        // 在构造器中初始化 MemoryManager，传入 Memory 对象
-        this.memoryManager = new MemoryManager(workbench);
-    }
+    
 
     // 存数据库用
     // @PostConstruct

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.lang.reflect.Field; // 可以移除此 import
 import java.util.List;
 import java.util.stream.Collectors; // 可以移除此 import
+import java.util.stream.IntStream;
 
 /**
  * 内存/工作台服务类：提供状态查询和操作接口
@@ -52,13 +53,13 @@ public class MemoryService {
      * 专门用于前端表格（视图 B）
      * @return List<WorkstationVo> 包含每个分区的详细状态
      */
+    // MemoryService 中 getWorkstationDetails 方法修改
     public List<WorkstationVo> getWorkstationDetails() {
-        Memory memory = memoryManager.getMemory(); // 获取全局 Memory 信息
-        List<Partition> partitions = memoryManager.getPartitions(); // 获取分区列表
+        Memory memory = memoryManager.getMemory();
+        List<Partition> partitions = memory.getPartitions();
 
-        // 使用 Stream API 将 Partition 列表转换为 WorkstationVo 列表
-        return partitions.stream()
-                .map(p -> WorkstationVo.fromPartitionAndMemory(p, memory))
+        return IntStream.range(0, partitions.size())
+                .mapToObj(index -> WorkstationVo.fromMemory(memory, index))
                 .collect(Collectors.toList());
     }
 }

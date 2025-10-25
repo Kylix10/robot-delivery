@@ -4,6 +4,7 @@ import com.example.robotdelivery.pojo.Dish;
 import com.example.robotdelivery.pojo.Order;
 import com.example.robotdelivery.pojo.Partition;
 import com.example.robotdelivery.pojo.Memory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,14 +15,14 @@ import java.util.Comparator;
 public class MemoryManager {
     private final Memory memory;
 
+    @Autowired // 注入Spring管理的Memory单例
     public MemoryManager(Memory memory) {
         this.memory = memory;
-        // 初始化分区
+        // 初始化分区（仅在分区为空时）
         if (memory.getPartitions().isEmpty()) {
             memory.getPartitions().add(new Partition(1, memory.getTotalSpace(), 0));
         }
     }
-
     /*private void 重新设置所有分区的ID，保证连续性
      */
     private void reassignPartitionIds(List<Partition> partitions) {
