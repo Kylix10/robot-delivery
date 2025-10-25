@@ -3,110 +3,114 @@ package com.example.robotdelivery.daemon;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.concurrent.*;
+import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
- * 后端监控守护进程
- * <p>
- * 作用：
- * - 定时检查后端是否存活（通过健康检查接口）
- * - 后端崩溃或无响应时自动重启
- * - 可配置检测间隔和启动命令
+ * BackendMonitorDaemon
+ * 守护进程，用于监控 backend jar 是否运行，如果未运行则启动
+ * 并在守护进程退出时尝试关闭后台服务
  */
-
-//待配置的内容，一个是这个进程得托管给Spring boot管理  一个是需要写一个cmd脚本来用于启动程序
-
-
 public class BackendMonitorDaemon
 {
-    // 后端启动命令，需要Windows环境下执行
-    private static final String[] BACKEND_START_COMMAND = {"cmd", "/c", "start-backend.bat"};
+    private volatile boolean running = true;
 
-    // 后端健康检查URL
-    private static final String BACKEND_HEALTH_URL = "http://localhost:8088/actuator/health";
+    // bat 脚本相对路径（相对于守护进程类）
+    private static final String START_BAT_PATH = "start-backend.bat";
+    private static final long CHECK_INTERVAL = 5000; // 5 秒
+    private static final int BACKEND_PORT = 8088; // 后端服务端口
+    private Process batProcess;
 
-    // 检查间隔，单位秒
-    private static final int MONITOR_INTERVAL_SEC = 5;
-
-    // 用于执行守护线程
-    private ScheduledExecutorService executor;
-
-    // 标记守护进程是否正在运行
-    private volatile boolean running = false;
-
-    /**
-     * 启动守护进程
-     */
-    public void start()
+    public BackendMonitorDaemon()
     {
-        if (running)
+        // 注册 JVM 关闭钩子
+        Runtime.getRuntime().addShutdownHook(new Thread(() ->
         {
-            System.out.println("BackendMonitorDaemon 已经在运行");
-            return;
-        }
-
-        running = true;
-        executor = Executors.newSingleThreadScheduledExecutor();
-
-        // 每隔 MONITOR_INTERVAL_SEC 秒执行一次
-        executor.scheduleAtFixedRate(this::checkAndRestart, 0, MONITOR_INTERVAL_SEC, TimeUnit.SECONDS);
-
-        System.out.println("BackendMonitorDaemon 启动成功");
+            log("=== BackendMonitorDaemon 即将退出，检查是否需要关闭后台服务 ===");
+            stopBackendByPort();
+        }));
     }
 
-    /**
-     * 停止守护进程
-     */
-    public void stop()
+    public void run()
     {
-        running = false;
-        if (executor != null)
-        {
-            executor.shutdownNow();
-            System.out.println("BackendMonitorDaemon 已停止");
-        }
-    }
+        log("=== BackendMonitorDaemon 启动 ===");
 
-    /**
-     * 核心逻辑：
-     * - 检查后端健康
-     * - 不健康时执行重启
-     */
-    private void checkAndRestart()
-    {
-        try
+        while (running)
         {
-            if (!isBackendHealthy())
+            if (!isBackendRunning())
             {
-                System.out.println("检测到后端异常，准备重启...");
-                restartBackend();
+                log("后台服务未运行，启动中...");
+                startBackend();
+                if (!waitForPortStartup(BACKEND_PORT, 15000)) // 最多等待 15 秒
+                {
+                    log("等待后台服务端口超时，请检查服务是否正常启动");
+                }
+                else
+                {
+                    log("后台服务启动完成，端口可访问");
+                }
+            }
+            else
+            {
+                log("后台服务已在运行，跳过启动。");
+            }
+
+            try
+            {
+                Thread.sleep(CHECK_INTERVAL);
+            }
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+                running = false;
             }
         }
-        catch (Exception e)
-        {
-            System.err.println("BackendMonitorDaemon 检查异常: " + e.getMessage());
-            e.printStackTrace();
-        }
+
+        log("=== BackendMonitorDaemon 已退出 ===");
     }
 
-    /**
-     * 健康检查
-     * @return true 表示后端正常，false 表示异常
-     */
-    private boolean isBackendHealthy()
+    /** 执行 bat 脚本启动后台服务 */
+    private void startBackend()
     {
         try
         {
-            URL url = new URL(BACKEND_HEALTH_URL);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(2000); // 2秒超时
-            conn.setReadTimeout(2000);
+            batProcess = new ProcessBuilder("cmd.exe", "/c", START_BAT_PATH)
+                    .redirectErrorStream(true)
+                    .start();
 
-            int responseCode = conn.getResponseCode();
-            return responseCode == 200;
+            // 打印 bat 输出，便于调试
+            new Thread(() ->
+            {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(batProcess.getInputStream())))
+                {
+                    String line;
+                    while ((line = reader.readLine()) != null)
+                    {
+                        log("[BAT] " + line);
+                    }
+                }
+                catch (IOException ignored)
+                {
+                }
+            }).start();
+
+            log("启动脚本已执行，PID=" + batProcess.pid());
+
+        }
+        catch (IOException e)
+        {
+            log("启动脚本失败: " + e.getMessage());
+        }
+    }
+
+    /** 检查后台服务是否已启动（通过端口检测） */
+    private boolean isBackendRunning()
+    {
+        try (Socket socket = new Socket("localhost", BACKEND_PORT))
+        {
+            return true;
         }
         catch (IOException e)
         {
@@ -114,34 +118,66 @@ public class BackendMonitorDaemon
         }
     }
 
-    /**
-     * 重启后端
-     */
-    private void restartBackend()
+    /** 等待端口可用，最长等待 timeout 毫秒 */
+    private boolean waitForPortStartup(int port, long timeout)
+    {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < timeout)
+        {
+            if (isBackendRunning())
+            {
+                return true;
+            }
+            try
+            {
+                Thread.sleep(500);
+            }
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /** 根据端口尝试关闭后台服务（Windows 下通过 taskkill 查找 java 进程） */
+    private void stopBackendByPort()
     {
         try
         {
-            // 执行Windows命令
-            ProcessBuilder pb = new ProcessBuilder(BACKEND_START_COMMAND);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
+            // 查找占用端口的 PID
+            Process find = new ProcessBuilder("cmd.exe", "/c",
+                    "for /f \"tokens=5\" %a in ('netstat -ano ^| findstr :" + BACKEND_PORT + "') do @echo %a")
+                    .start();
 
-            // 输出启动日志
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())))
+            BufferedReader reader = new BufferedReader(new InputStreamReader(find.getInputStream()));
+            String pid;
+            while ((pid = reader.readLine()) != null)
             {
-                String line;
-                while ((line = reader.readLine()) != null)
+                pid = pid.trim();
+                if (!pid.isEmpty())
                 {
-                    System.out.println("[Backend启动日志] " + line);
+                    log("后台服务正在运行，尝试关闭 PID=" + pid);
+                    new ProcessBuilder("cmd.exe", "/c", "taskkill /F /PID " + pid).start();
                 }
             }
-
-            System.out.println("后端已尝试重启");
         }
         catch (IOException e)
         {
-            System.err.println("重启后端失败: " + e.getMessage());
-            e.printStackTrace();
+            log("关闭后台服务失败: " + e.getMessage());
         }
+    }
+
+    /** 日志输出，带时间戳 */
+    private static void log(String msg)
+    {
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS"));
+        System.out.println("[" + time + "] " + msg);
+    }
+
+    public static void main(String[] args)
+    {
+        new BackendMonitorDaemon().run();
     }
 }
