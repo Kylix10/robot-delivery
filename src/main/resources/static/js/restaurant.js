@@ -1810,3 +1810,46 @@ function initPathPlanning() {
 $(document).ready(function() {
     initPathPlanning();
 });
+// 定时任务管理
+const DataRefresher = {
+    intervals: {}, // 存储定时器ID
+
+    // 注册定时任务
+    register(name, callback, interval = 3000) {
+        // 先清除已有同名任务，避免重复
+        if (this.intervals[name]) {
+            clearInterval(this.intervals[name]);
+        }
+        // 立即执行一次，再开始定时
+        callback();
+        this.intervals[name] = setInterval(callback, interval);
+    },
+
+    // 清除所有定时任务
+    clearAll() {
+        Object.values(this.intervals).forEach(intervalId => {
+            clearInterval(intervalId);
+        });
+        this.intervals = {};
+    }
+};
+
+// 页面加载完成后初始化所有定时任务
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化内存监控（已有定时任务）
+    memoryManager.init();
+    DataRefresher.register('memory',  memoryManager.fetchMemoryStatus, 3000);
+
+    // 注册订单数据定时刷新（3秒一次）
+    DataRefresher.register('orders', fetchOrdersAndRender, 3000);
+
+    // 注册机器人数据定时刷新（5秒一次）
+    DataRefresher.register('robots', fetchRobots, 5000);
+
+    // 注册器具数据定时刷新（5秒一次）
+    DataRefresher.register('tools', fetchTools, 5000);
+
+    // 注册工作台数据定时刷新（5秒一次）
+    DataRefresher.register('workstations', fetchWorkstations, 5000);
+
+});
