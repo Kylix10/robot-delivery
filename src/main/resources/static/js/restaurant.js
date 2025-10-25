@@ -31,6 +31,7 @@ let memoryManager = {
         setInterval(() => this.fetchMemoryStatus(), 1000); // 调整为1秒刷新一次
     },
 
+
     // ------------------- API 调用 (获取状态) -------------------
 
     // 获取内存状态 (对应 MemoryController.getMemoryStatus, 返回 MemoryVO)
@@ -48,6 +49,7 @@ let memoryManager = {
             console.error("Fetch Memory Status Error:", error);
         }
     },
+
 
     // ------------------- 可视化更新 (基于 MemoryVO 数据) -------------------
 
@@ -100,8 +102,8 @@ let memoryManager = {
 
             // 设置显示文本
             if (partition.allocated) {
-                // 使用 dishName 或 dishId 进行显示 (来自 Partition POJO)
-                const dishLabel = partition.dishName || `ID:${partition.dishId}`;
+                // 使用 dishName 或 orderId 进行显示 (来自 Partition POJO)
+                const dishLabel = partition.dishName || `ID:${partition.orderId}`;
                 partitionEl.textContent = `${dishLabel} (${partition.size}KB)`;
             } else {
                 partitionEl.textContent = `${partition.size}KB`;
@@ -112,7 +114,7 @@ let memoryManager = {
             // 3. 添加到分区列表
             const listItem = document.createElement('div');
             listItem.className = `partition-item ${partition.allocated ? 'allocated' : 'free'}`;
-            const dishInfo = partition.allocated ? `, 菜品: ${partition.dishName || `ID:${partition.dishId}`}` : '';
+            const dishInfo = partition.allocated ? `, 菜品: ${partition.dishName || `ID:${partition.orderId}`}` : '';
             // 假设 Partition POJO 包含 start 和 size 字段
             listItem.innerHTML = `
                 <strong>${partition.allocated ? '已分配' : '空闲'}</strong>: 
@@ -247,6 +249,7 @@ $(document).ready(function() {
         memoryManager.init();
     }
 
+
     // 绑定内存操作事件 (仅保留导航事件)
     bindMemoryEvents();
 
@@ -264,7 +267,8 @@ $(document).ready(function() {
 
     fetchAlgorithmMetrics();
 
-
+    // // 设置定时器，每 10 秒刷新一次数据
+    // setInterval(fetchMemoryStatus, 1000);
     // 设置定时刷新
     setInterval(function() {
         // 定期从后端获取最新状态数据
@@ -272,6 +276,7 @@ $(document).ready(function() {
         fetchRobots();
         fetchTools();
         fetchWorkstations();
+        memoryManager.init();
 
         // 模拟机器人位置更新（因为后端VO缺少坐标，无法实时获取，需保留此模拟逻辑）
         updateRobotPositions();
@@ -281,7 +286,7 @@ $(document).ready(function() {
 
         // 刷新算法指标（模拟）
         fetchAlgorithmMetrics();
-    }, 10000); // 每5秒刷新一次
+    }, 2000); // 每5秒刷新一次
 });
 
 // 绑定内存操作事件 (移除内存分配/释放/整理，因为后端Controller未提供接口)
@@ -581,7 +586,8 @@ $(function() {
     // 页面加载完成后启动数据获取和定时刷新
     fetchLatestMetrics();
     // 设置定时器，每 10 秒刷新一次数据
-    setInterval(fetchLatestMetrics, 8000);
+    setInterval(fetchLatestMetrics, 5000);
+
 });
 
 // 初始化导航切换
@@ -1395,7 +1401,7 @@ async function runCompare() {
 }
 // 测试内存分配
 function testAllocate() {
-    fetch(`${API_BASE}/memory/allocate?dishId=1&size=30`, { method: 'POST' })
+    fetch(`${API_BASE}/memory/allocate?orderId=1&size=30`, { method: 'POST' })
         .then(response => response.json())
         .then(data => {
             console.log('分配结果:', data);
@@ -1405,10 +1411,53 @@ function testAllocate() {
 
 // 测试内存释放
 function testRelease() {
-    fetch(`${API_BASE}/memory/release?dishId=1`, { method: 'POST' })
+    fetch(`${API_BASE}/memory/release?orderId=1`, { method: 'POST' })
         .then(response => response.json())
         .then(data => {
             console.log('释放结果:', data);
             memoryManager.fetchMemoryStatus(); // 刷新显示
         });
 }
+// 定时任务管理
+const DataRefresher = {
+    intervals: {}, // 存储定时器ID
+
+    // 注册定时任务
+    register(name, callback, interval = 3000) {
+        // 先清除已有同名任务，避免重复
+        if (this.intervals[name]) {
+            clearInterval(this.intervals[name]);
+        }
+        // 立即执行一次，再开始定时
+        callback();
+        this.intervals[name] = setInterval(callback, interval);
+    },
+
+    // 清除所有定时任务
+    clearAll() {
+        Object.values(this.intervals).forEach(intervalId => {
+            clearInterval(intervalId);
+        });
+        this.intervals = {};
+    }
+};
+
+// 页面加载完成后初始化所有定时任务
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化内存监控（已有定时任务）
+    memoryManager.init();
+    DataRefresher.register('memory',  memoryManager.fetchMemoryStatus, 3000);
+
+    // 注册订单数据定时刷新（3秒一次）
+    DataRefresher.register('orders', fetchOrdersAndRender, 3000);
+
+    // 注册机器人数据定时刷新（5秒一次）
+    DataRefresher.register('robots', fetchRobots, 5000);
+
+    // 注册器具数据定时刷新（5秒一次）
+    DataRefresher.register('tools', fetchTools, 5000);
+
+    // 注册工作台数据定时刷新（5秒一次）
+    DataRefresher.register('workstations', fetchWorkstations, 5000);
+
+});

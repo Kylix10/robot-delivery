@@ -33,8 +33,8 @@
             --macaron-orange-dark: #E67E22;
 
             /* 内存分区颜色 */
-            --allocated-color: #fdc494;     /* 已分配分区 - 橙色色 */
-            --free-color: rgba(129, 192, 129, 0.88);          /* 空闲分区 - 绿色 */
+            --allocated-color: #F7C6C2;     /* 已分配分区 - 橙色色 */
+            --free-color: #a8c5a5;          /* 空闲分区 - 绿色 */
             --border-color: #FFFFFF;        /* 分区边框 */
         }
         /* 补充状态文本颜色类 */
@@ -200,12 +200,12 @@
         }
 
         .improvement-positive {
-            color: #2E7D32;
+            color: #5f9ea0;
             font-weight: bold;
         }
 
         .improvement-negative {
-            color: #C62828;
+            color: rgba(220, 91, 91, 0.7);
             font-weight: bold;
         }
 
@@ -656,10 +656,7 @@
         <!-- 内存分配算法可视化页面 -->
 <div id="memory-page" class="page-content d-none memory-visualization">
     <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-microchip me-2"></i>动态内存分配算法可视化</h2>
-    <div class="memory-actions">
-        <button class="btn btn-sm btn-primary" onclick="testAllocate()">测试分配</button>
-        <button class="btn btn-sm btn-danger" onclick="testRelease()">测试释放</button>
-    </div>
+
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-desktop me-2"></i>工作台内存分区状态</h5>
@@ -699,24 +696,24 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-info-circle me-2"></i>最佳适应算法说明</h5>
+    <div class="card" style="background-color: #E9F4F0; border-color: #5F9EA0;">
+        <div class="card-header" style="background-color: #E9F4F0; border-color: #5F9EA0;">
+            <h5 class="mb-0" style="color: #000000;"><i class="fas fa-info-circle me-2"></i>最佳适应算法说明</h5>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-12">
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
+                        <li class="list-group-item" style="background-color: #E9F4F0; border-color: #5F9EA0;">
                             <strong>分配策略:</strong> 遍历所有未分配分区，找到大小最接近所需空间的空闲分区进行分配
                         </li>
-                        <li class="list-group-item">
+                        <li class="list-group-item" style="background-color: #E9F4F0; border-color: #5F9EA0;">
                             <strong>分区切割:</strong> 当最佳分区大于所需空间时，切割为刚好满足需求的已分配分区和剩余的未分配分区
                         </li>
-                        <li class="list-group-item">
+                        <li class="list-group-item" style="background-color: #E9F4F0; border-color: #5F9EA0;">
                             <strong>释放与合并:</strong> 释放分区后，自动检查并合并相邻的空闲分区，减少外部碎片
                         </li>
-                        <li class="list-group-item">
+                        <li class="list-group-item" style="background-color: #E9F4F0; border-color: #5F9EA0;">
                             <strong>碎片整理:</strong> 当分配失败但总可用空间足够时，将所有已分配分区紧凑排列，合并所有空闲空间
                         </li>
                     </ul>
@@ -724,7 +721,6 @@
             </div>
         </div>
     </div>
-</div>
     </div>
 
     <!-- 新建订单模态框 -->
