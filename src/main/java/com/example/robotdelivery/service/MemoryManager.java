@@ -110,6 +110,8 @@ public class MemoryManager {
             // 标记分配状态
             bestFitPart.setAllocated(true);
             bestFitPart.setDishId(dishId);
+            // 【新增】确保设置菜肴名称
+            bestFitPart.setDishName(dish.getDishName());
 
             // 【新增/修改】更新 Memory 状态
             calculateTotalFreeSpace();
@@ -215,6 +217,8 @@ public class MemoryManager {
             if (part.isAllocated() && part.getDishId() == dishId) {
                 part.setAllocated(false);
                 part.setDishId(-1);
+                // 【新增】释放时清除菜肴名称
+                part.setDishName(null);
                 released = true; // 标记已释放
 
                 // 尝试与前一个分区合并
