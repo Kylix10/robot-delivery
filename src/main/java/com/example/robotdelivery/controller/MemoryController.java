@@ -1,13 +1,14 @@
 package com.example.robotdelivery.controller;
 
+import com.example.robotdelivery.pojo.Dish;
 import com.example.robotdelivery.pojo.vo.MemoryVO;
 import com.example.robotdelivery.pojo.vo.WorkstationVo;
+import com.example.robotdelivery.service.IOrderService;
+import com.example.robotdelivery.service.MemoryManager;
 import com.example.robotdelivery.service.MemoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -16,6 +17,8 @@ import java.util.List;
 public class MemoryController {
 
     private final MemoryService memoryService;
+    @Autowired
+    private MemoryManager memoryManager;
 
     @Autowired
     public MemoryController(MemoryService memoryService) {
@@ -43,5 +46,18 @@ public class MemoryController {
         List<WorkstationVo> statusList = memoryService.getWorkstationDetails();
         return ResponseEntity.ok(statusList);
     }
+
+//    @PostMapping("/allocate")
+//    public ResponseEntity<Boolean> testAllocate(@RequestParam int dishId, @RequestParam int size) {
+//        Dish testDish = new Dish();
+//        testDish.setDishId(dishId);
+//        testDish.setRequiredSpace(size);
+//        return ResponseEntity.ok(memoryManager.allocateForOrder(testDish));
+//    }
+//
+//    @PostMapping("/release")
+//    public ResponseEntity<Boolean> testRelease(@RequestParam int dishId) {
+//        return ResponseEntity.ok(memoryManager.releaseOrderPartition(dishId));
+//    }
 
 }

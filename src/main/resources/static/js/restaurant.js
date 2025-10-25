@@ -75,6 +75,7 @@ let memoryManager = {
         setInterval(() => this.fetchMemoryStatus(), 1000); // 调整为1秒刷新一次
     },
 
+
     // ------------------- API 调用 (获取状态) -------------------
 
     // 获取内存状态 (对应 MemoryController.getMemoryStatus, 返回 MemoryVO)
@@ -92,6 +93,7 @@ let memoryManager = {
             console.error("Fetch Memory Status Error:", error);
         }
     },
+
 
     // ------------------- 可视化更新 (基于 MemoryVO 数据) -------------------
 
@@ -139,12 +141,13 @@ let memoryManager = {
             const widthPercent = (partition.size / totalSpace) * 100; // Partition POJO 包含 size 字段
             partitionEl.style.width = `${widthPercent}%`;
             // 计算起始位置百分比 (假设 Partition POJO 有 start 字段)
-            partitionEl.style.left = `${(partition.start / totalSpace) * 100}%`;
+            // 正确代码：
+            partitionEl.style.left = `${(partition.startAddress / totalSpace) * 100}%`;
 
             // 设置显示文本
             if (partition.allocated) {
-                // 使用 dishName 或 dishId 进行显示 (来自 Partition POJO)
-                const dishLabel = partition.dishName || `ID:${partition.dishId}`;
+                // 使用 dishName 或 orderId 进行显示 (来自 Partition POJO)
+                const dishLabel = partition.dishName || `ID:${partition.orderId}`;
                 partitionEl.textContent = `${dishLabel} (${partition.size}KB)`;
             } else {
                 partitionEl.textContent = `${partition.size}KB`;
@@ -155,11 +158,11 @@ let memoryManager = {
             // 3. 添加到分区列表
             const listItem = document.createElement('div');
             listItem.className = `partition-item ${partition.allocated ? 'allocated' : 'free'}`;
-            const dishInfo = partition.allocated ? `, 菜品: ${partition.dishName || `ID:${partition.dishId}`}` : '';
+            const dishInfo = partition.allocated ? `, 菜品: ${partition.dishName || `ID:${partition.orderId}`}` : '';
             // 假设 Partition POJO 包含 start 和 size 字段
             listItem.innerHTML = `
                 <strong>${partition.allocated ? '已分配' : '空闲'}</strong>: 
-                起始地址: ${partition.start}KB, 大小: ${partition.size}KB
+                起始地址: ${partition.startAddress}KB, 大小: ${partition.size}KB
                 ${dishInfo}
             `;
             listContainer.appendChild(listItem);
@@ -290,6 +293,7 @@ $(document).ready(function() {
         memoryManager.init();
     }
 
+
     // 绑定内存操作事件 (仅保留导航事件)
     bindMemoryEvents();
 
@@ -299,6 +303,7 @@ $(document).ready(function() {
     fetchTools();
     fetchWorkstations();
 
+
     // 渲染仪表盘
     renderDashboard();
 
@@ -306,7 +311,8 @@ $(document).ready(function() {
 
     fetchAlgorithmMetrics();
 
-
+    // // 设置定时器，每 10 秒刷新一次数据
+    // setInterval(fetchMemoryStatus, 1000);
     // 设置定时刷新
     setInterval(function() {
         // 定期从后端获取最新状态数据
@@ -314,6 +320,7 @@ $(document).ready(function() {
         fetchRobots();
         fetchTools();
         fetchWorkstations();
+        memoryManager.init();
 
         // 模拟机器人位置更新（因为后端VO缺少坐标，无法实时获取，需保留此模拟逻辑）
         updateRobotPositions();
@@ -323,7 +330,7 @@ $(document).ready(function() {
 
         // 刷新算法指标（模拟）
         fetchAlgorithmMetrics();
-    }, 10000); // 每5秒刷新一次
+    }, 2000); // 每5秒刷新一次
 });
 
 // 绑定内存操作事件 (移除内存分配/释放/整理，因为后端Controller未提供接口)
@@ -353,7 +360,7 @@ function showMemoryMessage(message, isSuccess) {
     }, 3000);
 }
 
-// 从后端获取算法指标数据 (保留模拟逻辑，因为未提供后端API)
+// 从后端获取算法指标数据
 function fetchAlgorithmMetrics() {
     simulateAlgorithmMetrics();
     // 假设每 6 次（60秒/1分钟）更新一次历史数据
@@ -364,118 +371,268 @@ function fetchAlgorithmMetrics() {
     minuteCounter++;
     updateAlgorithmMetricsUI();
 }
+// 假设已引入 jQuery 和 Chart.js
+$(function() {
+    const API_URL = "/api/performance/comparison";
+    // 1 分钟 = 60000 毫秒。将后端返回的毫秒转换为分钟进行展示。
+    const MS_TO_MINUTES = 60000;
 
-// 模拟算法指标数据 (将吞吐量改为收益)
-function simulateAlgorithmMetrics() {
-    // 模拟使用优化算法的情况 - 更好的性能和收益
-    algorithmMetrics.withAlgorithm.avgResponseTime = (3 + Math.random() * 2).toFixed(1); // 3-5分钟
-    algorithmMetrics.withAlgorithm.revenue = (1200 + Math.random() * 400).toFixed(2);     // 1200-1600元/小时
+    // 全局 Chart 实例，用于销毁和重绘
+    let algRevenueChartInstance = null;
+    let noAlgRevenueChartInstance = null;
+    let comparisonChartInstance = null;
 
-    // 模拟不使用算法的情况 - 较差的性能和收益
-    algorithmMetrics.withoutAlgorithm.avgResponseTime = (6 + Math.random() * 3).toFixed(1); // 6-9分钟
-    algorithmMetrics.withoutAlgorithm.revenue = (800 + Math.random() * 300).toFixed(2);      // 800-1100元/小时
-}
-// 新增：更新历史收益数据并渲染折线图
-function updateRevenueHistory(metrics, type) {
-    const revenue = parseFloat(metrics.revenue);
-    const newEntry = {
-        time: metrics.revenueHistory.length + 1, // 记录是第几分钟
-        value: revenue // 当前收益值
-    };
+    /**
+     * 渲染历史收益折线图
+     * @param {string} chartId Canvas ID: 'alg-revenue-chart' 或 'noalg-revenue-chart'
+     * @param {Array<Object>} historyData 后端返回的历史数据列表 (ModePerformanceDTO[])
+     * @param {string} title 图表标题
+     * @param {string} color 曲线颜色 (Bootstrap 样式中使用的颜色)
+     */
+    function renderLineChart(chartId, historyData, title, color) {
+        const canvas = document.getElementById(chartId);
+        if (!canvas) {
+            console.error(`Canvas ID #${chartId} not found.`);
+            return;
+        }
+        const ctx = canvas.getContext('2d');
 
-    // 限制历史数据点数量
-    if (metrics.revenueHistory.length >= 20) {
-        metrics.revenueHistory.shift(); // 移除最旧的点
-    }
-    metrics.revenueHistory.push(newEntry);
+        // 销毁旧图表实例
+        let chartInstance = window[`${chartId}Instance`];
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
 
-    // 仅在历史数据更新时渲染折线图
-    if (type === 'withAlgorithm') {
-        renderRevenueChart('alg-revenue-chart', algorithmMetrics.withAlgorithm.revenueHistory, '使用优化算法总收益 (元)', 'rgba(255, 202, 212, 0.8)');
-    } else {
-        renderRevenueChart('noalg-revenue-chart', algorithmMetrics.withoutAlgorithm.revenueHistory, '使用基础算法总收益 (元)', 'rgba(199, 206, 234, 0.8)');
-    }
-}
-// 更新算法指标UI
-// 修改updateAlgorithmMetricsUI
-function updateAlgorithmMetricsUI() {
-    // 更新指标卡片
-    $('#alg-avg-response').text(algorithmMetrics.withAlgorithm.avgResponseTime);
-    $('#noalg-avg-response').text(algorithmMetrics.withoutAlgorithm.avgResponseTime);
+        // 提取数据点。x轴使用计算时间 (HH:mm:ss)，y轴使用总收益
+        const labels = historyData.map(d => d.calcTime ? d.calcTime.substring(11, 19) : '');
+        const data = historyData.map(d => d.totalRevenue);
 
-    // 更新收益卡片
-    $('#alg-revenue').text(algorithmMetrics.withAlgorithm.revenue);
-    $('#noalg-revenue').text(algorithmMetrics.withoutAlgorithm.revenue);
-
-    // 计算改进百分比
-    const responseImprovement = Math.round((1 -
-        algorithmMetrics.withAlgorithm.avgResponseTime / algorithmMetrics.withoutAlgorithm.avgResponseTime) * 100);
-    const revenueImprovement = Math.round((
-        algorithmMetrics.withAlgorithm.revenue / algorithmMetrics.withoutAlgorithm.revenue - 1) * 100);
-
-    // 更新改进百分比并设置颜色
-    $('#response-improvement').text(responseImprovement + '%').removeClass('improvement-positive improvement-negative')
-        .addClass(responseImprovement > 0 ? 'improvement-positive' : 'improvement-negative');
-    $('#revenue-improvement').text(revenueImprovement + '%').removeClass('improvement-positive improvement-negative')
-        .addClass(revenueImprovement > 0 ? 'improvement-positive' : 'improvement-negative');
-
-    // 渲染对比图表 (如果需要，可保留此柱状图)
-    //renderAlgorithmComparisonChart();
-}
-
-// 新增：渲染收益折线图
-function renderRevenueChart(chartId, dataArray, title, color) {
-    const canvas = document.getElementById(chartId);
-    if (!canvas) {
-        console.error(`HTML 元素 #${chartId} 未找到，无法渲染图表。`);
-        return;
-    }
-    const ctx = canvas.getContext('2d');
-
-    // 销毁已存在的图表
-    if (window[chartId + 'Chart']) {
-        window[chartId + 'Chart'].destroy();
-    }
-
-    const labels = dataArray.map(d => `${d.time} min`);
-    const data = dataArray.map(d => d.value);
-
-    window[chartId + 'Chart'] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: title,
-                data: data,
-                backgroundColor: color,
-                borderColor: color.replace('0.8', '1'),
-                borderWidth: 2,
-                tension: 0.3,
-                fill: false, // 折线图不填充
-                pointRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: '收益 (元)'
+        // 创建新图表实例并存储
+        window[`${chartId}Instance`] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: title,
+                    data: data,
+                    backgroundColor: color.replace('0.8', '0.5'),
+                    borderColor: color.replace('0.8', '1'),
+                    borderWidth: 2,
+                    tension: 0.3, // 曲线平滑度
+                    fill: false,
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        // 调整 ticks 格式，使其支持大额显示 (K/M) <--- 【修改点开始】
+                        title: { display: true, text: '累计总收益 (元)' },
+                        ticks: {
+                            callback: function(value) {
+                                // 增加显示额度：当数值较大时，使用 K/M 等单位
+                                if (value >= 1000000) {
+                                    return '¥' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                                if (value >= 1000) {
+                                    return '¥' + (value / 1000).toFixed(1) + 'k';
+                                }
+                                return '¥' + value.toFixed(0); // 保持整数显示
+                            }
+                        }
+                        // 【修改点结束】
+                    },
+                    x: {
+                        title: { display: true, text: '时间 (HH:mm:ss)' }
                     }
                 },
-                x: {
-                    title: {
-                        display: true,
-                        text: '时间 (分钟)'
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    /**
+     * 渲染性能指标对比柱状图
+     * @param {Object} algorithmMode 算法模式最新数据
+     * @param {Object} defaultMode 默认模式最新数据
+     */
+    function renderComparisonChart(algorithmMode, defaultMode) {
+        const canvas = document.getElementById('comparison-chart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        if (comparisonChartInstance) {
+            comparisonChartInstance.destroy();
+        }
+
+        const algAvgResponseMin = (algorithmMode.avgResponseTimeMs / MS_TO_MINUTES) || 0;
+        const noAlgAvgResponseMin = (defaultMode.avgResponseTimeMs / MS_TO_MINUTES) || 0;
+        const algRevenue = algorithmMode.totalRevenue || 0;
+        const noAlgRevenue = defaultMode.totalRevenue || 0;
+
+        comparisonChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['平均响应时间 (分钟)', '总收益 (元)'],
+                datasets: [
+                    {
+                        label: '优化算法',
+                        // 注意：这里必须是数值类型，但toFixed()返回字符串，Chart.js可以处理
+                        data: [algAvgResponseMin.toFixed(2), algRevenue.toFixed(2)],
+                        backgroundColor: 'rgba(74, 88, 89, 0.8)', // 优化算法颜色 (深色)
+                        borderColor: 'rgba(74, 88, 89, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '默认模式',
+                        data: [noAlgAvgResponseMin.toFixed(2), noAlgRevenue.toFixed(2)],
+                        backgroundColor: 'rgba(179, 189, 190, 0.8)', // 默认模式颜色 (浅色)
+                        borderColor: 'rgba(179, 189, 190, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: '值' } },
+                    x: { stacked: false }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                // 根据数据索引添加单位
+                                const unit = context.dataIndex === 0 ? '分钟' : '元';
+                                label += context.formattedValue + ' ' + unit;
+                                return label;
+                            }
+                        }
                     }
                 }
             }
+        });
+    }
+
+    /**
+     * 更新 UI 指标卡片
+     * @param {Object} algorithmMode 算法模式最新数据
+     * @param {Object} defaultMode 默认模式最新数据
+     */
+    function updateMetricsUI(algorithmMode, defaultMode) {
+        if (!algorithmMode || !defaultMode) return;
+
+        // 转换为分钟，并确保为数字（后端可能返回null或0）
+        const algAvgResponseMin = (algorithmMode.avgResponseTimeMs / MS_TO_MINUTES) || 0;
+        const noAlgAvgResponseMin = (defaultMode.avgResponseTimeMs / MS_TO_MINUTES) || 0;
+        const algRevenue = algorithmMode.totalRevenue || 0;
+        const noAlgRevenue = defaultMode.totalRevenue || 0;
+
+        // 1. 更新指标卡片值
+        $('#alg-avg-response').text(algAvgResponseMin.toFixed(2));
+        $('#noalg-avg-response').text(noAlgAvgResponseMin.toFixed(2));
+        $('#alg-revenue').text(algRevenue.toFixed(2));
+        $('#noalg-revenue').text(noAlgRevenue.toFixed(2));
+
+        // 2. 计算改进百分比
+        let responseImprovement = 0;
+        if (noAlgAvgResponseMin > 0) {
+            // 响应时间越短越好，计算缩短的百分比
+            responseImprovement = ((noAlgAvgResponseMin - algAvgResponseMin) / noAlgAvgResponseMin) * 100;
         }
-    });
-}
+
+        let revenueImprovement = 0;
+        if (noAlgRevenue > 0) {
+            // 收益越高越好，计算提升的百分比
+            revenueImprovement = ((algRevenue - noAlgRevenue) / noAlgRevenue) * 100;
+        }
+
+        // 3. 更新改进百分比并设置颜色
+        const updateImprovementText = (elementId, value) => {
+            const element = $(`#${elementId}`);
+            // 百分比显示一位小数
+            const formattedValue = Math.abs(value).toFixed(1);
+
+            // 判断是否为积极的改进 (响应时间缩短/收益提升)
+            const isPositive = value > 0;
+
+            element.text(`${formattedValue}%`);
+            element.removeClass('improvement-positive improvement-negative');
+            // 注意：HTML中已有improvement-positive类，这里保留并切换
+            element.addClass(isPositive ? 'improvement-positive' : 'improvement-negative');
+        };
+
+        updateImprovementText('response-improvement', responseImprovement);
+        updateImprovementText('revenue-improvement', revenueImprovement);
+    }
+
+    /**
+     * 从后端 API 获取最新性能数据并渲染
+     */
+    async function fetchLatestMetrics() {
+        try {
+            // 可以在此处添加一个加载状态的UI提示
+
+            const response = await fetch(API_URL);
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                const algMode = data.algorithmMode || {};
+                const defMode = data.defaultMode || {};
+                const algHistory = data.algorithmHistory || [];
+                const defHistory = data.defaultHistory || [];
+
+                // 1. 渲染最新的指标卡片
+                updateMetricsUI(algMode, defMode);
+
+                // 2. 渲染性能指标对比柱状图
+                renderComparisonChart(algMode, defMode);
+
+                // 3. 渲染历史收益折线图
+                // 使用HTML中定义的颜色名称或预设的颜色
+                const algColor = 'rgba(255, 202, 212, 0.8)'; // Pinkish/Red
+                const defaultColor = 'rgba(199, 206, 234, 0.8)'; // Light Blue/Gray
+
+                // 优化算法历史
+                renderLineChart(
+                    'alg-revenue-chart',
+                    algHistory,
+                    '优化算法总收益',
+                    algColor
+                );
+
+                // 默认模式历史
+                renderLineChart(
+                    'noalg-revenue-chart',
+                    defHistory,
+                    '基础算法总收益',
+                    defaultColor
+                );
+
+            } else {
+                console.error("API Error:", data.message || "API返回错误状态。");
+            }
+
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            // 可以在此处添加一个错误提示的UI
+        }
+    }
+
+    // 页面加载完成后启动数据获取和定时刷新
+    fetchLatestMetrics();
+    // 设置定时器，每 10 秒刷新一次数据
+    setInterval(fetchLatestMetrics, 5000);
+
+});
 
 // 初始化导航切换
 function initNavigation() {

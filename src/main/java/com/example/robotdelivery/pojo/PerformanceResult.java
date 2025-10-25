@@ -28,4 +28,60 @@ public class PerformanceResult {
 
     @Column(name = "calc_time") // 计算时间（写入数据库的时间）
     private LocalDateTime calcTime;
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getModeType() {
+        return modeType;
+    }
+
+    public void setModeType(Integer modeType) {
+        this.modeType = modeType;
+    }
+
+    public Integer getCompletedCount() {
+        return completedCount;
+    }
+
+    public void setCompletedCount(Integer completedCount) {
+        this.completedCount = completedCount;
+    }
+
+    public Double getTotalRevenue() {
+        return totalRevenue;
+    }
+
+    public void setTotalRevenue(Double totalRevenue) {
+        this.totalRevenue = totalRevenue;
+    }
+
+    public Double getAvgResponseTimeMs() {
+        return avgResponseTimeMs;
+    }
+
+    public void setAvgResponseTimeMs(Double avgResponseTimeMs) {
+        this.avgResponseTimeMs = avgResponseTimeMs;
+    }
+
+    public Double getThroughput() {
+        return throughput;
+    }
+
+    public void setThroughput(Double throughput) {
+        this.throughput = throughput;
+    }
+
+    public LocalDateTime getCalcTime() {
+        return calcTime;
+    }
+
+    public void setCalcTime(LocalDateTime calcTime) {
+        this.calcTime = calcTime;
+    }
 }
