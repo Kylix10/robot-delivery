@@ -672,17 +672,15 @@ public class ResourceManagerThread extends Thread {
             System.out.println("无空闲机器人（数据库实时查询）");
             return null;
         }
-        // 按机器人ID升序排序，优先选择ID小的机器人（公平分配）
-        Robot freeRobot = freeRobots.stream()
-                .sorted(Comparator.comparingInt(Robot::getRobotId))
-                .findFirst()
-                .orElse(null);
-        // 同步数据库状态到内存allRobots
-        if (freeRobot != null) {
-            syncRobotToMemory(freeRobot);
-            System.out.println("找到空闲机器人：ID=" + freeRobot.getRobotId() + "（当前空闲数量：" + freeRobots.size() + "/4）");
-        }
-        return freeRobot;
+        // 关键修改：从空闲列表中随机选择一个
+        Random random = new Random();
+        int randomIndex = random.nextInt(freeRobots.size());
+        Robot randomFreeRobot = freeRobots.get(randomIndex);
+
+        // 同步数据库状态到内存
+        syncRobotToMemory(randomFreeRobot);
+        System.out.println("随机选择空闲机器人：ID=" + randomFreeRobot.getRobotId() + "（当前空闲数量：" + freeRobots.size() + "/4）");
+        return randomFreeRobot;
     }
 
     // 2. 新增：同步数据库机器人状态到内存
