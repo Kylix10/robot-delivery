@@ -400,7 +400,7 @@ public class ResourceManagerThread extends Thread {
 
                 try {
                     // 1. 工作台内存动态分配
-                    if (!memoryManager.allocateForDish(dish)) {
+                    if (!memoryManager.allocateForOrder(order)) {
                         System.out.println("工作区空间分配失败（动态分配），订单" + order.getOrderId() + "放回等待队列");
                         orderWaitQueue.offer(order);
                         return false;
@@ -418,7 +418,7 @@ public class ResourceManagerThread extends Thread {
                         if (freeOvens.isEmpty()) {
                             System.out.println("无空闲烤箱，订单" + order.getOrderId() + "放回等待队列");
                             orderWaitQueue.offer(order);
-                            rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
+                            rollbackResources(allocatedTools, robot, workspaceAllocated, order.getOrderId());
                             return false;
                         }
                         Tools oven = freeOvens.get(0);
@@ -437,7 +437,7 @@ public class ResourceManagerThread extends Thread {
                         if (freeFryPans.isEmpty()) {
                             System.out.println("无空闲煎锅，订单" + order.getOrderId() + "放回等待队列");
                             orderWaitQueue.offer(order);
-                            rollbackResources(allocatedTools, robot, workspaceAllocated, dish.getDishId());
+                            rollbackResources(allocatedTools, robot, workspaceAllocated, order.getOrderId());
                             return false;
                         }
                         Tools fryPan = freeFryPans.get(0);
@@ -506,10 +506,10 @@ public class ResourceManagerThread extends Thread {
      * @param allocatedTools 已分配的工具列表
      * @param robot 机器人对象
      * @param workspaceAllocated 工作区是否已分配标志
-     * @param dishId 菜肴ID (用于动态内存管理释放分区)
+     * @param orderId 菜肴ID (用于动态内存管理释放分区)
      */
     private void rollbackResources(List<Tools> allocatedTools, Robot robot,
-                                   boolean workspaceAllocated, int dishId) {
+                                   boolean workspaceAllocated, int orderId) {
         System.out.println("--- 执行资源回滚 ---");
         // 1. 回滚工具资源
         // 1. 工具回滚（新增炸锅回滚）
@@ -530,10 +530,10 @@ public class ResourceManagerThread extends Thread {
 
         // 2. 回滚工作区资源 (修改为调用 MemoryManager 释放)
         if (workspaceAllocated) {
-            if (memoryManager.releaseDishPartition(dishId)) {
-                System.out.println("已回滚工作区内存（菜肴ID:" + dishId + "）");
+            if (memoryManager.releaseOrderPartition(orderId)) {
+                System.out.println("已回滚工作区内存（菜肴ID:" + orderId + "）");
             } else {
-                System.err.println("!!! 警告：工作区内存回滚失败（菜肴ID:" + dishId + "）!!! ");
+                System.err.println("!!! 警告：工作区内存回滚失败（菜肴ID:" + orderId + "）!!! ");
             }
             robot.setOccupiedWorkbench(null); // 机器人解绑
         }
@@ -588,10 +588,10 @@ public class ResourceManagerThread extends Thread {
                     System.out.println("炸锅" + fryPot.getToolId() + "释放成功");
                 }
                 // --- 工作区释放 ---
-                if (memoryManager.releaseDishPartition(dish.getDishId())) {
-                    System.out.println("工作区内存（菜肴ID:" + dish.getDishId() + "）释放成功");
+                if (memoryManager.releaseOrderPartition(order.getOrderId())) {
+                    System.out.println("工作区内存（订单ID:" + order.getOrderId() + "）释放成功");
                 } else {
-                    System.err.println("!!! 警告：工作区内存释放失败（菜肴ID:" + dish.getDishId() + "）!!! ");
+                    System.err.println("!!! 警告：工作区内存释放失败（订单ID:" + order.getOrderId() + "）!!! ");
                 }
                 robot.setOccupiedWorkbench(null);
 

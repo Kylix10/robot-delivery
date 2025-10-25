@@ -25,7 +25,7 @@ public class WorkstationVo {
         // 2. 状态和任务 (来自 Partition)
         if (partition.isAllocated()) {
             vo.status = "已分配";
-            vo.currentTask = "Dish-" + partition.getDishId();
+            vo.currentTask = "Order-" + partition.getOrderId();
         } else {
             vo.status = "空闲";
             vo.currentTask = "无";

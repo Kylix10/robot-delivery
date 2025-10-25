@@ -47,17 +47,17 @@ public class MemoryController {
         return ResponseEntity.ok(statusList);
     }
 
-    @PostMapping("/allocate")
-    public ResponseEntity<Boolean> testAllocate(@RequestParam int dishId, @RequestParam int size) {
-        Dish testDish = new Dish();
-        testDish.setDishId(dishId);
-        testDish.setRequiredSpace(size);
-        return ResponseEntity.ok(memoryManager.allocateForDish(testDish));
-    }
-
-    @PostMapping("/release")
-    public ResponseEntity<Boolean> testRelease(@RequestParam int dishId) {
-        return ResponseEntity.ok(memoryManager.releaseDishPartition(dishId));
-    }
+//    @PostMapping("/allocate")
+//    public ResponseEntity<Boolean> testAllocate(@RequestParam int dishId, @RequestParam int size) {
+//        Dish testDish = new Dish();
+//        testDish.setDishId(dishId);
+//        testDish.setRequiredSpace(size);
+//        return ResponseEntity.ok(memoryManager.allocateForOrder(testDish));
+//    }
+//
+//    @PostMapping("/release")
+//    public ResponseEntity<Boolean> testRelease(@RequestParam int dishId) {
+//        return ResponseEntity.ok(memoryManager.releaseOrderPartition(dishId));
+//    }
 
 }
