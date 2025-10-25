@@ -54,7 +54,7 @@ public class DataInitializer implements ApplicationRunner {
             if (!nameToIngredient.containsKey(name)) {
                 Ingredient ing = new Ingredient();
                 ing.setName(name);
-                ing.setPosition(pos++);
+                ing.setPosition(pos+14);
                 toSave.add(ing);
             }
         }
