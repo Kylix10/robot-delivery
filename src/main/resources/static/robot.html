@@ -656,7 +656,10 @@
         <!-- 内存分配算法可视化页面 -->
 <div id="memory-page" class="page-content d-none memory-visualization">
     <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-microchip me-2"></i>动态内存分配算法可视化</h2>
-
+    <div class="memory-actions">
+        <button class="btn btn-sm btn-primary" onclick="testAllocate()">测试分配</button>
+        <button class="btn btn-sm btn-danger" onclick="testRelease()">测试释放</button>
+    </div>
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-desktop me-2"></i>工作台内存分区状态</h5>

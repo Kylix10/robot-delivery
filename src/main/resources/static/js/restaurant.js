@@ -95,7 +95,8 @@ let memoryManager = {
             const widthPercent = (partition.size / totalSpace) * 100; // Partition POJO 包含 size 字段
             partitionEl.style.width = `${widthPercent}%`;
             // 计算起始位置百分比 (假设 Partition POJO 有 start 字段)
-            partitionEl.style.left = `${(partition.start / totalSpace) * 100}%`;
+            // 正确代码：
+            partitionEl.style.left = `${(partition.startAddress / totalSpace) * 100}%`;
 
             // 设置显示文本
             if (partition.allocated) {
@@ -115,7 +116,7 @@ let memoryManager = {
             // 假设 Partition POJO 包含 start 和 size 字段
             listItem.innerHTML = `
                 <strong>${partition.allocated ? '已分配' : '空闲'}</strong>: 
-                起始地址: ${partition.start}KB, 大小: ${partition.size}KB
+                起始地址: ${partition.startAddress}KB, 大小: ${partition.size}KB
                 ${dishInfo}
             `;
             listContainer.appendChild(listItem);
@@ -254,6 +255,7 @@ $(document).ready(function() {
     fetchRobots();
     fetchTools();
     fetchWorkstations();
+
 
     // 渲染仪表盘
     renderDashboard();
@@ -1390,4 +1392,23 @@ async function runCompare() {
     } catch (error) {
         console.error("算法对比失败:", error);
     }
+}
+// 测试内存分配
+function testAllocate() {
+    fetch(`${API_BASE}/memory/allocate?dishId=1&size=30`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log('分配结果:', data);
+            memoryManager.fetchMemoryStatus(); // 刷新显示
+        });
+}
+
+// 测试内存释放
+function testRelease() {
+    fetch(`${API_BASE}/memory/release?dishId=1`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log('释放结果:', data);
+            memoryManager.fetchMemoryStatus(); // 刷新显示
+        });
 }

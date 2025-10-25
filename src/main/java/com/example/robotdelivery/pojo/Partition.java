@@ -6,6 +6,7 @@ public class Partition {
     private int startAddress;       // 分区起始地址
     private boolean isAllocated;    // 是否已分配
     private int dishId;             // 若已分配，存储菜肴ID
+    private String dishName;        // 【新增】若已分配，存储菜肴名称
 
     public Partition(int id, int size, int startAddress) {
         this.id = id;
@@ -26,6 +27,9 @@ public class Partition {
     public void setAllocated(boolean allocated) { isAllocated = allocated; }
     public int getDishId() { return dishId; }
     public void setDishId(int dishId) { this.dishId = dishId; }
+    // 【新增】
+    public String getDishName() { return dishName; }
+    public void setDishName(String dishName) { this.dishName = dishName; }
 
     @Override
     public String toString() {
