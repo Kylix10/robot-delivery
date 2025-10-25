@@ -16,8 +16,9 @@ public class Ingredient {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false,unique = true)
     private Integer position;
+
 
     // 反向关系（非必需时可不序列化，防止死循环）
     @ManyToMany(mappedBy = "ingredients", fetch = FetchType.LAZY)

@@ -15,7 +15,7 @@
             --macaron-blue: #A8DADC;        /* 马卡龙蓝 */
             --macaron-blue-dark: #5F9EA0;
             --macaron-green: #C7CEEA;       /* 马卡龙绿 */
-            --macaron-green-dark: #4f6550;       /* 马卡龙绿 */
+            --macaron-green-dark: #4f6550;       /* 马卡龙绿深色 */
             --macaron-pink: #FFCAD4;        /* 马卡龙粉 */
             --macaron-pink-dark: #D64933;
             --macaron-yellow: #FFE5D9;      /* 马卡龙黄 */
@@ -29,7 +29,6 @@
             --macaron-gray-dark: #6C757D;
             --macaron-red: #F8C6CF;
             --macaron-red-dark: #C92A2A;
-            /*--macaron-orange: #FFE5B4;*/
             --macaron-orange-dark: #E67E22;
 
             /* 内存分区颜色 */
@@ -51,7 +50,7 @@
             color: var(--macaron-orange-dark);
         }
 
-        /* 补充背景颜色类（如果需要） */
+        /* 补充背景颜色类 */
         .bg-macaron-blue\/20 {
             background-color: var(--macaron-blue);
         }
@@ -88,15 +87,14 @@
         body {
             color: var(--text-color);
             background-color: #FFF9F5;      /* 温暖的浅底色，增强食欲感 */
-            display: flex;                /* 新增: 启用 Flexbox */
-            flex-direction: column;       /* 新增: 垂直排列子元素 */
-            min-height: 100vh;            /* 新增: body 至少占据整个视口高度 */
+            display: flex;                /* 启用 Flexbox */
+            flex-direction: column;       /* 垂直排列子元素 */
+            min-height: 100vh;            /* body 至少占据整个视口高度 */
         }
 
         .content-area {
-            /* min-height: calc(100vh - 120px);  <-- 注释掉，使用 Flexbox 替代 */
-            flex-grow: 1;                 /* 新增: 让内容区域占据所有剩余空间 */
-            display: flex;                /* 新增: 确保内容区内部的页面也能撑开 */
+            flex-grow: 1;                 /* 让内容区域占据所有剩余空间 */
+            display: flex;                /* 确保内容区内部的页面也能撑开 */
             flex-direction: column;
         }
 
@@ -289,612 +287,731 @@
             font-size: 14px;
         }
 
-        /* 新增/修改：路径规划相关样式统一 */
+        /* 路径规划相关样式（统一马卡龙色系） */
+        .path-planning-page .card {
+            background-color: #FEF6F0;
+            border: 1px solid #F0E6E0;
+        }
 
-        /* 统一输入框/选择框边框颜色 */
-        .card-body input[type="number"],
-        .card-body select {
+        .path-planning-page .card-header {
+            background-color: var(--macaron-yellow);
+            color: var(--macaron-orange-dark);
+            border-bottom: 1px solid #F0E6E0;
+        }
+
+        .path-container {
+            background-color: #FEF6F0;
+            border: 1px solid #F0E6E0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        /* 按钮样式统一 */
+        .btn-macaron-green {
+            background-color: var(--macaron-green);
+            color: var(--macaron-green-dark);
+            border: none;
+        }
+
+        .btn-macaron-blue {
+            background-color: var(--macaron-blue);
+            color: var(--macaron-blue-dark);
+            border: none;
+        }
+
+        .btn-macaron-pink {
+            background-color: var(--macaron-pink);
+            color: var(--macaron-pink-dark);
+            border: none;
+        }
+
+        .btn-macaron-orange {
+            background-color: var(--macaron-orange);
+            color: var(--macaron-orange-dark);
+            border: none;
+        }
+
+        .btn-macaron-yellow {
+            background-color: var(--macaron-yellow);
+            color: var(--macaron-yellow-dark);
+            border: none;
+        }
+
+        .btn:hover, .btn:focus {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+
+        /* 图例颜色统一 */
+        .legend-robot {
+            background-color: var(--macaron-pink);
+        }
+
+        .legend-ingredient {
+            background-color: var(--macaron-green);
+        }
+
+        .legend-request {
+            background-color: var(--macaron-orange);
+        }
+
+        .legend-path {
+            background-color: var(--macaron-blue);
+        }
+
+        /* 输入框和选择框样式统一 */
+        .path-planning-page input,
+        .path-planning-page select {
             border-color: var(--macaron-green);
+            background-color: white;
             border-radius: 0.5rem;
-            padding: 0.375rem 0.75rem;
-            transition: border-color 0.3s ease;
         }
 
-        .card-body input[type="number"]:focus,
-        .card-body select:focus {
-            box-shadow: 0 0 0 0.25rem rgba(199, 206, 234, 0.5); /* 使用 macaron-green 的淡化色 */
+        .path-planning-page input:focus,
+        .path-planning-page select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(199, 206, 234, 0.5);
             border-color: var(--macaron-green-dark);
-        }
-
-        .controls .group label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* 统一 lane/path 容器的卡片内联样式，使其与卡片背景一致 */
-        .lane-card-style {
-            background-color: white !important; /* 确保背景色统一 */
-            border: 1px solid #F0E6E0 !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 增加轻微阴影 */
-            border-radius: 0.5rem;
-            padding: 8px; /* 增加内边距 */
-        }
-
-        /* 统一路径点的样式 */
-        .point {
-            background: var(--macaron-gray-dark); /* 统一使用深灰色 */
-        }
-        .point.label {
-            color: var(--text-color);
-        }
-        .head {
-            background: var(--macaron-pink-dark); /* 突出机械臂用深粉色 */
-        }
-        .seg {
-            background: var(--macaron-pink); /* 突出路径用粉色 */
-        }
-        .tick {
-            background: #ccc;
-            height: 15px; /* 减小刻度高度 */
-        }
-        .tick-label {
-            bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-light" style="background-color: var(--macaron-yellow);">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-utensils me-2" style="color: #E67E22;"></i>机器人出餐管理系统
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="nav-dashboard" href="#dashboard" style="color: var(--text-color);">
-                            <i class="fas fa-tachometer-alt me-1"></i>仪表盘
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="nav-orders" href="#orders" style="color: var(--text-color);">
-                            <i class="fas fa-list-alt me-1"></i>订单管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="nav-resources" href="#resources" style="color: var(--text-color);">
-                            <i class="fas fa-boxes me-1"></i>资源管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="nav-memory" href="#memory" style="color: var(--text-color);">
-                            <i class="fas fa-microchip me-1"></i>内存分配
-                        </a>
-                    </li>
-                    <!-- 在原有导航项后添加路径规划页面 -->
-                    <li class="nav-item">
-                        <a class="nav-link" id="nav-path-planning" href="#path-planning" style="color: var(--text-color);">
-                            <i class="fas fa-route me-1"></i>路径规划
-                        </a>
-                    </li>
-                </ul>
-            </div>
+<!-- 导航栏 -->
+<nav class="navbar navbar-expand-lg navbar-light" style="background-color: var(--macaron-yellow);">
+    <div class="container">
+        <a class="navbar-brand" href="#">
+            <i class="fas fa-utensils me-2" style="color: #E67E22;"></i>机器人出餐管理系统
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" id="nav-dashboard" href="#dashboard" style="color: var(--text-color);">
+                        <i class="fas fa-tachometer-alt me-1"></i>仪表盘
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="nav-orders" href="#orders" style="color: var(--text-color);">
+                        <i class="fas fa-list-alt me-1"></i>订单管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="nav-resources" href="#resources" style="color: var(--text-color);">
+                        <i class="fas fa-boxes me-1"></i>资源管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="nav-memory" href="#memory" style="color: var(--text-color);">
+                        <i class="fas fa-microchip me-1"></i>内存分配
+                    </a>
+                </li>
+                <!-- 路径规划页面 -->
+                <li class="nav-item">
+                    <a class="nav-link" id="nav-path-planning" href="#path-planning" style="color: var(--text-color);">
+                        <i class="fas fa-route me-1"></i>路径规划
+                    </a>
+                </li>
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    <!-- 主要内容区域 -->
-    <div class="container py-4 content-area">
-        <!-- 仪表盘页面 -->
-        <div id="dashboard-page" class="page-content">
-            <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-tachometer-alt me-2"></i>系统仪表盘</h2>
+<!-- 主要内容区域 -->
+<div class="container py-4 content-area">
+    <!-- 仪表盘页面 -->
+    <div id="dashboard-page" class="page-content">
+        <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-tachometer-alt me-2"></i>系统仪表盘</h2>
 
-            <!-- 统计卡片 -->
-            <div class="row mb-4">
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100" style="background-color: var(--macaron-blue); color: #2A7B9B;">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-clipboard-list me-2"></i>今日订单</h5>
-                            <h2 class="display-4" id="today-orders">0</h2>
-                            <p class="card-text"><small>较昨日 <span style="color: #1A5276;"><i class="fas fa-arrow-up"></i> 12%</span></small></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100" style="background-color: var(--macaron-green); color: #4A5859;">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-check-circle me-2"></i>已完成订单</h5>
-                            <h2 class="display-4" id="completed-orders">0</h2>
-                            <p class="card-text"><small>完成率 <span id="completion-rate">0%</span></small></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100" style="background-color: var(--macaron-pink); color: #D64933;">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-robot me-2"></i>活跃机器人</h5>
-                            <h2 class="display-4" id="active-robots">0</h2>
-                            <p class="card-text"><small>总数 <span id="total-robots">0</span></small></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100" style="background-color: var(--macaron-orange); color: #D35400;">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-clock me-2"></i>平均出餐时间</h5>
-                            <h2 class="display-4" id="avg-time">0</h2>
-                            <p class="card-text"><small>分钟/单</small></p>
-                        </div>
+        <!-- 统计卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card h-100" style="background-color: var(--macaron-blue); color: #2A7B9B;">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-clipboard-list me-2"></i>今日订单</h5>
+                        <h2 class="display-4" id="today-orders">0</h2>
+                        <p class="card-text"><small>较昨日 <span style="color: #1A5276;"><i class="fas fa-arrow-up"></i> 12%</span></small></p>
                     </div>
                 </div>
             </div>
-
-            <!-- 图表和地图 - 调整比例，机器人分布区域更大 -->
-            <div class="row">
-                <div class="col-md-4 mb-4">  <!-- 订单趋势区域缩小 -->
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-chart-line me-2"></i>订单趋势</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="orders-chart"></canvas>
-                        </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100" style="background-color: var(--macaron-green); color: #4A5859;">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-check-circle me-2"></i>已完成订单</h5>
+                        <h2 class="display-4" id="completed-orders">0</h2>
+                        <p class="card-text"><small>完成率 <span id="completion-rate">0%</span></small></p>
                     </div>
                 </div>
-                <div class="col-md-8 mb-4">  <!-- 机器人分布区域扩大 -->
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #D64933;"><i class="fas fa-map-marked-alt me-2"></i>餐厅机器人分布</h5>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="map-container" id="restaurant-map">
-                                <!-- 餐厅地图和机器人位置将通过JS动态生成 -->
-                            </div>
-                        </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100" style="background-color: var(--macaron-pink); color: #D64933;">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-robot me-2"></i>活跃机器人</h5>
+                        <h2 class="display-4" id="active-robots">0</h2>
+                        <p class="card-text"><small>总数 <span id="total-robots">0</span></small></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100" style="background-color: var(--macaron-orange); color: #D35400;">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-clock me-2"></i>平均出餐时间</h5>
+                        <h2 class="display-4" id="avg-time">0</h2>
+                        <p class="card-text"><small>分钟/单</small></p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 订单管理页面 -->
-        <div id="orders-page" class="page-content d-none">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 style="color: #E67E22;"><i class="fas fa-list-alt me-2"></i>订单管理</h2>
-                <button class="btn" style="background-color: var(--macaron-pink); color: #D64933;" data-bs-toggle="modal" data-bs-target="#new-order-modal">
-                    <i class="fas fa-plus me-1"></i>新建订单
-                </button>
-            </div>
-
-            <!-- 订单筛选 -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <input type="text" class="form-control" id="order-search" placeholder="搜索订单号" style="border-color: var(--macaron-green);">
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="order-status-filter" style="border-color: var(--macaron-green);">
-                                <option value="all">所有状态</option>
-                                <option value="pending">待处理</option>
-                                <option value="cooking">烹饪中</option>
-                                <option value="completed">已完成</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="order-priority-filter" style="border-color: var(--macaron-green);">
-                                <option value="all">所有优先级</option>
-                                <option value="1">普通 (1)</option>
-                                <option value="2">中等 (2)</option>
-                                <option value="3">较高 (3)</option>
-                                <option value="4">高 (4)</option>
-                                <option value="5">紧急 (5)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn w-100" style="background-color: var(--macaron-green); color: #4A5859;" id="filter-orders">
-                                <i class="fas fa-filter me-1"></i>筛选
-                            </button>
-                        </div>
+        <!-- 图表和地图 -->
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-chart-line me-2"></i>订单趋势</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="orders-chart"></canvas>
                     </div>
                 </div>
             </div>
-
-            <!-- 订单列表 -->
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>订单号</th>
-                                <th>菜品</th>
-                                <th>优先级</th>
-                                <th>创建时间</th>
-                                <th>状态</th>
-                                <th>处理机器人</th>
-                                <th>完成时间</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orders-table-body">
-                            <!-- 订单数据将通过JS动态生成 -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-footer text-center" id="no-orders-message">
-                    暂无更多订单数据
-                </div>
-            </div>
-        </div>
-
-
-
-        <!-- 资源管理页面 -->
-        <div id="resources-page" class="page-content d-none">
-            <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-boxes me-2"></i>资源管理</h2>
-
-            <div class="row mb-4">
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #D64933;"><i class="fas fa-utensils me-2"></i>烹饪器具</h5>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>器具ID</th>
-                                        <th>类型</th>
-                                        <th>状态</th>
-                                        <th>占用机器人</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="utensils-table-body">
-                                    <!-- 烹饪器具数据将通过JS动态生成 -->
-                                </tbody>
-                            </table>
+            <div class="col-md-8 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0" style="color: #D64933;"><i class="fas fa-map-marked-alt me-2"></i>餐厅机器人分布</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="map-container" id="restaurant-map">
+                            <!-- 餐厅地图和机器人位置将通过JS动态生成 -->
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-table me-2"></i>工作台</h5>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>工作台ID</th>
-                                        <th>容量</th>
-                                        <th>状态</th>
-                                        <th>占用机器人</th>
-                                        <th>当前任务</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="workstations-table-body">
-                                    <!-- 工作台数据将通过JS动态生成 -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row mb-4">
-                <div class="col-md-12 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-chart-line me-2"></i>算法与非算法资源管理对比</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <div class="card metric-card h-100" style="background-color: var(--macaron-blue); color: #2A7B9B;">
-                                        <div class="card-body">
-                                            <h5 class="card-title"><i class="fas fa-clock me-2"></i>平均响应时间 (分钟)</h5>
-                                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                                <div>
-                                                    <p class="mb-1"><small>使用算法</small></p>
-                                                    <p class="display-6 mb-0" id="alg-avg-response">0</p>
-                                                </div>
-                                                <div>
-                                                    <p class="mb-1"><small>不使用算法</small></p>
-                                                    <p class="display-6 mb-0" id="noalg-avg-response">0</p>
-                                                </div>
-                                            </div>
-                                            <p class="mt-3"><small>改进: <span id="response-improvement" class="improvement-positive">0%</span></small></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card metric-card h-100" style="background-color: var(--macaron-green); color: #4A5859;">
-                                        <div class="card-body">
-                                            <h5 class="card-title"><i class="fas fa-money-bill-wave me-2"></i>总收益 (元)</h5>
-                                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                                <div>
-                                                    <p class="mb-1"><small>使用算法</small></p>
-                                                    <p class="display-6 mb-0" id="alg-revenue">0</p>
-                                                </div>
-                                                <div>
-                                                    <p class="mb-1"><small>不使用算法</small></p>
-                                                    <p class="display-6 mb-0" id="noalg-revenue">0</p>
-                                                </div>
-                                            </div>
-                                            <p class="mt-3"><small>提升: <span id="revenue-improvement" class="improvement-positive">0%</span></small></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-5">
-                                <div class="col-md-12">
-                                    <h6 class="text-center text-secondary mb-3">性能指标对比柱状图</h6>
-                                    <div style="height: 300px;"><canvas id="comparison-chart"></canvas></div>
-                                </div>
-                            </div>
-
-                            <h5 class="card-title text-center text-secondary mb-3 mt-4">收益随时间变化趋势 (每分钟更新)</h5>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <h6 class="text-center text-muted">基础算法收益</h6>
-                                    <div style="height: 300px;"><canvas id="noalg-revenue-chart"></canvas></div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <h6 class="text-center text-muted">优化算法收益</h6>
-                                    <div style="height: 300px;"><canvas id="alg-revenue-chart"></canvas></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 内存分配算法可视化页面 -->
-<div id="memory-page" class="page-content d-none memory-visualization">
-    <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-microchip me-2"></i>动态内存分配算法可视化</h2>
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-desktop me-2"></i>工作台内存分区状态</h5>
-        </div>
-        <div class="card-body">
-            <div class="memory-container" id="memory-container">
-                </div>
-
-            <div class="memory-stats mt-3">
-                <div class="row mb-2">
-                    <div class="col-md-3">
-                        <strong>总空间:</strong> <span id="total-memory">0</span> KB
-                    </div>
-                    <div class="col-md-3">
-                        <strong>已使用空间:</strong> <span id="used-memory">0</span> KB
-                    </div>
-                    <div class="col-md-3">
-                        <strong>可用空间:</strong> <span id="free-memory">0</span> KB
-                    </div>
-                    <div class="col-md-3">
-                        <strong>碎片数量:</strong> <span id="fragment-count">0</span> 个
-                    </div>
-                </div>
-
-                <div class="progress-container">
-                    <div class="progress-bar" id="memory-usage-bar" style="width: 0%; background-color: var(--allocated-color);">
-                        已使用: 0%
-                    </div>
-                </div>
-            </div>
-
-            <div class="memory-partitions-list mt-4">
-                <h6><i class="fas fa-list-ul me-1"></i>分区详细信息:</h6>
-                <div id="partitions-list">
-                    </div>
             </div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-info-circle me-2"></i>最佳适应算法说明</h5>
+    <!-- 订单管理页面 -->
+    <div id="orders-page" class="page-content d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #E67E22;"><i class="fas fa-list-alt me-2"></i>订单管理</h2>
+            <button class="btn" style="background-color: var(--macaron-pink); color: #D64933;" data-bs-toggle="modal" data-bs-target="#new-order-modal">
+                <i class="fas fa-plus me-1"></i>新建订单
+            </button>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-12">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
-                            <strong>分配策略:</strong> 遍历所有未分配分区，找到大小最接近所需空间的空闲分区进行分配
-                        </li>
-                        <li class="list-group-item">
-                            <strong>分区切割:</strong> 当最佳分区大于所需空间时，切割为刚好满足需求的已分配分区和剩余的未分配分区
-                        </li>
-                        <li class="list-group-item">
-                            <strong>释放与合并:</strong> 释放分区后，自动检查并合并相邻的空闲分区，减少外部碎片
-                        </li>
-                        <li class="list-group-item">
-                            <strong>碎片整理:</strong> 当分配失败但总可用空间足够时，将所有已分配分区紧凑排列，合并所有空闲空间
-                        </li>
-                    </ul>
+
+        <!-- 订单筛选 -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="order-search" placeholder="搜索订单号" style="border-color: var(--macaron-green);">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="order-status-filter" style="border-color: var(--macaron-green);">
+                            <option value="all">所有状态</option>
+                            <option value="pending">待处理</option>
+                            <option value="cooking">烹饪中</option>
+                            <option value="completed">已完成</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="order-priority-filter" style="border-color: var(--macaron-green);">
+                            <option value="all">所有优先级</option>
+                            <option value="1">普通 (1)</option>
+                            <option value="2">中等 (2)</option>
+                            <option value="3">较高 (3)</option>
+                            <option value="4">高 (4)</option>
+                            <option value="5">紧急 (5)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn w-100" style="background-color: var(--macaron-green); color: #4A5859;" id="filter-orders">
+                            <i class="fas fa-filter me-1"></i>筛选
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 订单列表 -->
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th>订单号</th>
+                        <th>菜品</th>
+                        <th>优先级</th>
+                        <th>创建时间</th>
+                        <th>状态</th>
+                        <th>处理机器人</th>
+                        <th>完成时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                    <!-- 订单数据将通过JS动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer text-center" id="no-orders-message">
+                暂无更多订单数据
+            </div>
+        </div>
+    </div>
+
+    <!-- 资源管理页面 -->
+    <div id="resources-page" class="page-content d-none">
+        <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-boxes me-2"></i>资源管理</h2>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0" style="color: #D64933;"><i class="fas fa-utensils me-2"></i>烹饪器具</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th>器具ID</th>
+                                <th>类型</th>
+                                <th>状态</th>
+                                <th>占用机器人</th>
+                            </tr>
+                            </thead>
+                            <tbody id="utensils-table-body">
+                            <!-- 烹饪器具数据将通过JS动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-table me-2"></i>工作台</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th>工作台ID</th>
+                                <th>容量</th>
+                                <th>状态</th>
+                                <th>占用机器人</th>
+                                <th>当前任务</th>
+                            </tr>
+                            </thead>
+                            <tbody id="workstations-table-body">
+                            <!-- 工作台数据将通过JS动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-chart-line me-2"></i>算法与非算法资源管理对比</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card metric-card h-100" style="background-color: var(--macaron-blue); color: #2A7B9B;">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="fas fa-clock me-2"></i>平均响应时间 (分钟)</h5>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div>
+                                                <p class="mb-1"><small>使用算法</small></p>
+                                                <p class="display-6 mb-0" id="alg-avg-response">0</p>
+                                            </div>
+                                            <div>
+                                                <p class="mb-1"><small>不使用算法</small></p>
+                                                <p class="display-6 mb-0" id="noalg-avg-response">0</p>
+                                            </div>
+                                        </div>
+                                        <p class="mt-3"><small>改进: <span id="response-improvement" class="improvement-positive">0%</span></small></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card metric-card h-100" style="background-color: var(--macaron-green); color: #4A5859;">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="fas fa-money-bill-wave me-2"></i>总收益 (元)</h5>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div>
+                                                <p class="mb-1"><small>使用算法</small></p>
+                                                <p class="display-6 mb-0" id="alg-revenue">0</p>
+                                            </div>
+                                            <div>
+                                                <p class="mb-1"><small>不使用算法</small></p>
+                                                <p class="display-6 mb-0" id="noalg-revenue">0</p>
+                                            </div>
+                                        </div>
+                                        <p class="mt-3"><small>提升: <span id="revenue-improvement" class="improvement-positive">0%</span></small></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-5">
+                            <div class="col-md-12">
+                                <h6 class="text-center text-secondary mb-3">性能指标对比柱状图</h6>
+                                <div style="height: 300px;"><canvas id="comparison-chart"></canvas></div>
+                            </div>
+                        </div>
+
+                        <h5 class="card-title text-center text-secondary mb-3 mt-4">收益随时间变化趋势 (每分钟更新)</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-center text-muted">基础算法收益</h6>
+                                <div style="height: 300px;"><canvas id="noalg-revenue-chart"></canvas></div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-center text-muted">优化算法收益</h6>
+                                <div style="height: 300px;"><canvas id="alg-revenue-chart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 内存分配算法可视化页面 -->
+    <div id="memory-page" class="page-content d-none memory-visualization">
+        <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-microchip me-2"></i>动态内存分配算法可视化</h2>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0" style="color: #2A7B9B;"><i class="fas fa-desktop me-2"></i>工作台内存分区状态</h5>
+            </div>
+            <div class="card-body">
+                <div class="memory-container" id="memory-container">
+                </div>
+
+                <div class="memory-stats mt-3">
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <strong>总空间:</strong> <span id="total-memory">0</span> KB
+                        </div>
+                        <div class="col-md-3">
+                            <strong>已使用空间:</strong> <span id="used-memory">0</span> KB
+                        </div>
+                        <div class="col-md-3">
+                            <strong>可用空间:</strong> <span id="free-memory">0</span> KB
+                        </div>
+                        <div class="col-md-3">
+                            <strong>碎片数量:</strong> <span id="fragment-count">0</span> 个
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-bar" id="memory-usage-bar" style="width: 0%; background-color: var(--allocated-color);">
+                            已使用: 0%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="memory-partitions-list mt-4">
+                    <h6><i class="fas fa-list-ul me-1"></i>分区详细信息:</h6>
+                    <div id="partitions-list">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-info-circle me-2"></i>最佳适应算法说明</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <strong>分配策略:</strong> 遍历所有未分配分区，找到大小最接近所需空间的空闲分区进行分配
+                            </li>
+                            <li class="list-group-item">
+                                <strong>分区切割:</strong> 当最佳分区大于所需空间时，切割为刚好满足需求的已分配分区和剩余的未分配分区
+                            </li>
+                            <li class="list-group-item">
+                                <strong>释放与合并:</strong> 释放分区后，自动检查并合并相邻的空闲分区，减少外部碎片
+                            </li>
+                            <li class="list-group-item">
+                                <strong>碎片整理:</strong> 当分配失败但总可用空间足够时，将所有已分配分区紧凑排列，合并所有空闲空间
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-    </div>
 
-    <!-- 新建订单模态框 -->
-    <div class="modal fade" id="new-order-modal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content" style="border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                <div class="modal-header" style="border-bottom: 1px solid #F0E6E0; background-color: var(--macaron-yellow);">
-                    <h5 class="modal-title" style="color: #E67E22;"><i class="fas fa-plus-circle me-2"></i>新建订单</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="new-order-form">
-                        <div class="mb-3">
-                            <label for="order-dishes" class="form-label">选择菜品</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="麦辣鸡腿汉堡" id="dish1" style="border-color: var(--macaron-pink);">
-                                <label class="form-check-label" for="dish1">麦辣鸡腿汉堡 (¥32)</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="双层吉士汉堡" id="dish2" style="border-color: var(--macaron-pink);">
-                                <label class="form-check-label" for="dish2">双层吉士汉堡 (¥30)</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="板烧鸡腿堡" id="dish3" style="border-color: var(--macaron-pink);">
-                                <label class="form-check-label" for="dish3">板烧鸡腿堡 (¥20)</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="炸鸡排" id="dish4" style="border-color: var(--macaron-pink);">
-                                <label class="form-check-label" for="dish4">炸鸡排 (¥18)</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="麦满分" id="dish5" style="border-color: var(--macaron-pink);">
-                                <label class="form-check-label" for="dish5">麦满分 (¥20)</label>
-                            </div>
+<!-- 新建订单模态框 -->
+<div class="modal fade" id="new-order-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border-bottom: 1px solid #F0E6E0; background-color: var(--macaron-yellow);">
+                <h5 class="modal-title" style="color: #E67E22;"><i class="fas fa-plus-circle me-2"></i>新建订单</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="new-order-form">
+                    <div class="mb-3">
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="麦辣鸡腿汉堡" id="dish1" style="border-color: var(--macaron-pink);">
+                            <label class="form-check-label" for="dish1">麦辣鸡腿汉堡 (¥32)</label>
                         </div>
-                        <div class="mb-3">
-                            <label for="order-priority" class="form-label">订单优先级</label>
-                            <select class="form-select" id="order-priority" required="" style="border-color: var(--macaron-green);">
-                                <option value="1">普通 (1)</option>
-                                <option value="3">加急 (3)</option>
-                                <option value="5">VIP 紧急 (5)</option>
-                            </select>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="双层吉士汉堡" id="dish2" style="border-color: var(--macaron-pink);">
+                            <label class="form-check-label" for="dish2">双层吉士汉堡 (¥30)</label>
                         </div>
-                        <div class="mb-3">
-                            <label for="order-processing-algorithm" class="form-label">处理算法</label>
-                            <select class="form-select" id="order-processing-algorithm" required="" style="border-color: var(--macaron-green);">
-                                <option value="better">优化算法</option>
-                                <option value="basic">基础算法</option>
-                            </select>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="板烧鸡腿堡" id="dish3" style="border-color: var(--macaron-pink);">
+                            <label class="form-check-label" for="dish3">板烧鸡腿堡 (¥20)</label>
                         </div>
-                        <div class="mb-3">
-                            <label for="order-notes" class="form-label">备注信息（可选）</label>
-                            <textarea class="form-control" id="order-notes" rows="2" placeholder="例如：不要香菜、少辣等" style="border-color: var(--macaron-green);"></textarea>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="炸鸡排" id="dish4" style="border-color: var(--macaron-pink);">
+                            <label class="form-check-label" for="dish4">炸鸡排 (¥18)</label>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid #F0E6E0;">
-                    <button type="button" class="btn" style="background-color: var(--macaron-green); color: #4A5859;" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn" style="background-color: var(--macaron-pink); color: #D64933;" id="submit-order">提交订单</button>
-                </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="麦满分" id="dish5" style="border-color: var(--macaron-pink);">
+                            <label class="form-check-label" for="dish5">麦满分 (¥20)</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="order-priority" class="form-label">订单优先级</label>
+                        <select class="form-select" id="order-priority" required="" style="border-color: var(--macaron-green);">
+                            <option value="1">普通 (1)</option>
+                            <option value="3">加急 (3)</option>
+                            <option value="5">VIP 紧急 (5)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="order-processing-algorithm" class="form-label">处理算法</label>
+                        <select class="form-select" id="order-processing-algorithm" required="" style="border-color: var(--macaron-green);">
+                            <option value="better">优化算法</option>
+                            <option value="basic">基础算法</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="order-notes" class="form-label">备注信息（可选）</label>
+                        <textarea class="form-control" id="order-notes" rows="2" placeholder="例如：不要香菜、少辣等" style="border-color: var(--macaron-green);"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #F0E6E0;">
+                <button type="button" class="btn" style="background-color: var(--macaron-green); color: #4A5859;" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn" style="background-color: var(--macaron-pink); color: #D64933;" id="submit-order">提交订单</button>
             </div>
         </div>
     </div>
-    <div id="path-planning-page" class="page-content d-none">
-        <!-- 增加页面整体留白，通过容器控制内外边距 -->
-        <div style="padding: 10px 60px;">
-            <h2 class="mb-4" style="color: #E67E22;"><i class="fas fa-route me-2"></i>            食材拿取路径规划
-            </h2>
+</div>
 
-            <!-- 主内容卡片，包含所有页面内容 -->
-            <div class="card mb-4 shadow-sm">
-                <div class="card-body" style="padding: 25px;">
+<div id="path-planning-page" class="page-content d-none path-planning-page">
+    <div class="container-lg py-4">
 
+        <h3 class="mb-4 fw-bold" style="color: var(--macaron-orange-dark);">
+            <i class="fas fa-route me-2"></i>食材拿取路径规划
+        </h3>
 
-                    <hr class="my-3">
+        <div class="card shadow-sm border-0" style="background-color: var(--macaron-yellow); border: 1px solid var(--macaron-orange);">
+            <div class="card-body p-4">
+                <hr class="my-3" style="border-color: var(--macaron-orange);">
 
-                    <div class="d-flex flex-wrap align-items-center mb-4">
-                        <div class="d-flex align-items-center me-4 mb-2">
-                            <label class="d-flex align-items-center me-3">播放速度
-                                <select id="speed" class="form-select form-select-sm ms-2" style="width: 100px;">
-                                    <option value="0.5">0.5x</option>
-                                    <option value="1" selected>1x</option>
-                                    <option value="2">2x</option>
-                                    <option value="4">4x</option>
-                                </select>
-                            </label>
+                <div class="d-flex flex-wrap align-items-center mb-4 gap-3">
 
-                            <div class="btn-group" role="group">
-                                <button id="btn-play" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-pink); color: #D64933;">
-                                    <i class="fas fa-play"></i> 播放
-                                </button>
-                                <button id="btn-pause" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-yellow); color: #E67E22;">
-                                    <i class="fas fa-pause"></i> 暂停
-                                </button>
-                                <button id="btn-step" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-orange); color: #DAA520;">
-                                    <i class="fas fa-forward"></i> 单步
-                                </button>
-                                <button id="btn-reset" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-purple); color: white;">
-                                    <i class="fas fa-undo"></i> 重置
-                                </button>
-                            </div>
+                    <div class="d-flex align-items-center gap-2 border-end pe-3">
+                        <input type="text" id="order-id" placeholder="输入订单ID"
+                               class="form-control form-control-sm"
+                               style="width: 150px; border-color: var(--macaron-green); background-color: white;">
+                        <button id="btn-load-order"
+                                class="btn btn-sm btn-macaron-green">
+                            <i class="fas fa-download me-1"></i>加载订单
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-4 border-end pe-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary fw-bold">当前菜品:</span>
+                            <strong id="dish-name-display" style="color: var(--macaron-pink-dark);">未加载</strong>
                         </div>
 
-                        <div class="ms-auto mb-2">
-                            <button id="btn-compare" class="btn btn-sm transition-colors hover:shadow-sm" style="background-color: var(--macaron-blue-dark); color: white;">
-                                <i class="fas fa-balance-scale-left me-1"></i>一键对比所有算法
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-secondary">调度算法:</span>
+                            <select id="algorithm-select"
+                                    class="form-select form-select-sm"
+                                    style="width: 120px; border-color: var(--macaron-green); background-color: white;">
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <label class="d-flex align-items-center gap-2 mb-0">
+                            <span class="text-secondary">速度</span>
+                            <select id="speed"
+                                    class="form-select form-select-sm"
+                                    style="width: 80px; border-color: var(--macaron-green); background-color: white;">
+                                <option value="0.5">0.5x</option>
+                                <option value="1" selected>1x</option>
+                                <option value="2">2x</option>
+                                <option value="4">4x</option>
+                            </select>
+                        </label>
+
+                        <div class="btn-group" role="group" aria-label="播放控制">
+                            <button id="btn-play" class="btn btn-sm btn-macaron-pink">
+                                <i class="fas fa-play"></i> 播放
+                            </button>
+                            <button id="btn-pause" class="btn btn-sm btn-macaron-yellow">
+                                <i class="fas fa-pause"></i> 暂停
+                            </button>
+                            <button id="btn-step" class="btn btn-sm btn-macaron-orange">
+                                <i class="fas fa-forward"></i> 单步
+                            </button>
+                            <button id="btn-reset" class="btn btn-sm btn-macaron-blue">
+                                <i class="fas fa-undo"></i> 重置
                             </button>
                         </div>
                     </div>
 
-                    <!-- 算法对比板块卡片化 -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0" style="color: #4A5859;"><i class="fas fa-chart-bar me-2"></i>算法对比（同一批请求）</h5>
-                        </div>
-                        <div class="card-body p-0">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                <tr>
-                                    <th>算法</th>
-                                    <th>处理顺序</th>
-                                    <th>总距离</th>
-                                    <th>结束位置</th>
-                                </tr>
-                                </thead>
-                                <tbody id="comparison-results">
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="ms-auto">
+                        <button id="btn-compare" class="btn btn-sm btn-macaron-blue">
+                            <i class="fas fa-balance-scale-left me-1"></i>一键对比
+                        </button>
                     </div>
-
-                    <hr class="my-4">
-
-                    <div class="legend mt-4 mb-3">
-                        <span class="badge" style="background-color: var(--macaron-pink-dark); color: white;">机械臂位置</span>
-                        <span class="badge" style="background-color: var(--macaron-gray-dark); color: white;">请求位置</span>
-                        <span class="badge" style="background-color: var(--macaron-pink); color: #D64933;">规划路径</span>
-                    </div>
-
-                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-warehouse me-2"></i>仓库分布 (0-100)</h5>
-                    <div id="warehouse" class="lane lane-card-style p-3"></div>
-
-                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-box-open me-2"></i>请求位置</h5>
-                    <div id="requests" class="lane lane-card-style p-3"></div>
-
-                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-route me-2"></i>调度路径（<span id="alg-label">FCFS</span>）</h5>
-                    <div id="path" class="lane lane-card-style p-3"></div>
-
-                    <div class="d-flex justify-content-start align-items-center mt-3 mb-3 p-3 rounded" style="background-color: var(--macaron-tyellow); border: 1px dashed #E67E22;">
-                        <div>初始位置：<b id="info-start">-</b></div>
-                        <div class="ms-4">结束位置：<b id="info-end">-</b></div>
-                        <div class="ms-4">总距离：<b id="info-distance">-</b></div>
-                    </div>
-
-                    <h5 class="mt-4" style="color: #4A5859;"><i class="fas fa-file-alt me-2"></i>调度结果（处理顺序）</h5>
-                    <div id="result" class="result p-3 rounded" style="background-color: var(--macaron-light); border: 1px solid #E9ECEF;">
-                    </div>
-
                 </div>
+
+                <div id="message-area" class="mb-3"></div>
+
+                <hr class="my-4" style="border-color: var(--macaron-orange);">
+
+                <div class="row">
+                    <div class="col-lg-8">
+
+                        <div class="mb-4 p-3 rounded path-container"
+                             style="background-color: var(--macaron-blue); border: 1px solid var(--macaron-blue-dark);">
+                            <h5 class="mb-3 fw-bold" style="color: var(--macaron-blue-dark);">
+                                <i class="fas fa-route me-2"></i>实时调度路径 (<span id="alg-label">FCFS</span>)
+                            </h5>
+
+                            <div id="path" class="lane lane-card-style"
+                                 style="min-height: 100px; padding: 8px 0;"></div>
+
+                            <div id="result" class="result p-3 rounded mt-3"
+                                 style="background-color: white; border: 1px solid var(--macaron-blue);">
+                                <p class="mb-0 text-secondary">实时调度详情将在此处展示...</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5 class="text-muted mb-2"><i class="fas fa-warehouse me-2"></i>仓库分布 (食材位置)</h5>
+                            <div id="warehouse" class="lane lane-card-style p-3 rounded"
+                                 style="background-color: var(--macaron-green); border: 1px solid var(--macaron-green-dark); min-height: 90px;"></div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5 class="text-muted mb-2"><i class="fas fa-box-open me-2"></i>原始请求队列</h5>
+                            <div id="requests" class="lane lane-card-style p-3 rounded"
+                                 style="background-color: var(--macaron-orange); border: 1px solid var(--macaron-orange-dark); min-height: 90px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="card mb-4 shadow-sm"
+                             style="border: 2px solid var(--macaron-green-dark); background-color: white;">
+                            <div class="card-header bg-transparent fw-bold text-secondary">
+                                <i class="fas fa-chart-line me-1"></i> 调度性能指标
+                            </div>
+                            <div class="card-body d-grid gap-3">
+                                <div class="p-2 border-bottom border-muted-subtle">
+                                    <small class="text-secondary d-block">初始位置 (机械臂):</small>
+                                    <strong><span id="info-start" class="fs-5 text-macaron-blue-dark">-</span></strong>
+                                </div>
+                                <div class="p-2 border-bottom border-muted-subtle">
+                                    <small class="text-secondary d-block">当前/结束位置:</small>
+                                    <strong><span id="info-end" class="fs-5 text-macaron-pink-dark">-</span></strong>
+                                </div>
+                                <div class="p-2">
+                                    <small class="text-secondary d-block">总移动距离:</small>
+                                    <strong class="fs-4 text-macaron-orange-dark"><span id="info-distance">-</span></strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4 shadow-sm" style="background-color: white;">
+                            <div class="card-header bg-light fw-bold text-secondary">
+                                <i class="fas fa-list me-1"></i> 图例说明
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex align-items-center py-2">
+                                    <span class="badge rounded-pill me-3 p-2 legend-robot">&nbsp;&nbsp;&nbsp;</span>
+                                    机械臂 (马卡龙粉)
+                                </li>
+                                <li class="list-group-item d-flex align-items-center py-2">
+                                    <span class="badge rounded-pill me-3 p-2 legend-ingredient">&nbsp;&nbsp;&nbsp;</span>
+                                    仓库食材 (马卡龙绿)
+                                </li>
+                                <li class="list-group-item d-flex align-items-center py-2">
+                                    <span class="badge rounded-pill me-3 p-2 legend-request">&nbsp;&nbsp;&nbsp;</span>
+                                    请求位置 (马卡龙橙)
+                                </li>
+                                <li class="list-group-item d-flex align-items-center py-2">
+                                    <span class="badge rounded-pill me-3 p-2 legend-path">&nbsp;&nbsp;&nbsp;</span>
+                                    规划路径 (马卡龙蓝)
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" style="border-color: var(--macaron-orange);">
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0 fw-semibold text-secondary">
+                            <i class="fas fa-chart-bar me-2"></i>所有算法对比（同一批请求）
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0 text-center align-middle">
+                            <thead style="background-color: var(--macaron-yellow);">
+                            <tr>
+                                <th>算法</th>
+                                <th>处理顺序</th>
+                                <th>总距离</th>
+                                <th>结束位置</th>
+                            </tr>
+                            </thead>
+                            <tbody id="comparison-results"></tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
-    <!-- 页脚 -->
-    <footer class="py-3" style="background-color: var(--macaron-yellow); color: #E67E22;">
-        <div class="container text-center">
-            <p class="mb-0">机器人出餐管理系统 © 操作系统课程设计</p>
-        </div>
-    </footer>
+</div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<!-- 页脚 -->
+<footer class="py-3" style="background-color: var(--macaron-yellow); color: #E67E22;">
+    <div class="container text-center">
+        <p class="mb-0">机器人出餐管理系统 © 操作系统课程设计</p>
+    </div>
+</footer>
 
-    <!-- 引入外部JavaScript文件 -->
-    <script src="js/restaurant.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- 引入外部JavaScript文件 -->
+<script src="js/restaurant.js"></script>
 </body>
 </html>

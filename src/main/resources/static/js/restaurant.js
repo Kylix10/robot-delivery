@@ -19,6 +19,50 @@ let algorithmMetrics = {
 
 const API_BASE = 'http://localhost:8088/api'; // 统一API前缀
 
+//仓库食材拿取的新增变量
+// 调度可视化常量
+const VERTICAL_LAYER_HEIGHT = 25;
+const MIN_HORIZONTAL_SEPARATION_PERCENT = 6;
+const WAREHOUSE_MAX_CAPACITY = 100;
+
+// 调度可视化状态
+let drawnPointsRecord = {}; // 格式: {laneId: [{pos: 15, layer: 0}, ...]}
+let orderScheduleResult = null;
+let currentAlgorithm = 'FCFS';
+
+// 动画控制变量
+let currentStep = 0;
+let isPlaying = false;
+let animationInterval = null;
+let animationSpeed = 1000;
+
+// 页面元素ID映射
+const ELEMENT_IDS = {
+    WAREHOUSE_LANE: 'warehouse',
+    REQUEST_LANE: 'requests',
+    PATH_LANE: 'path',
+    RESULT_PANEL: 'result',
+    ALGORITHM_LABEL: 'alg-label',
+    INIT_POS: 'info-start',
+    END_POS: 'info-end',
+    TOTAL_DISTANCE: 'info-distance',
+
+    ALGORITHM_SELECT: 'algorithm-select',
+    DISH_NAME: 'dish-name-display',
+
+    ORDER_ID_INPUT: 'order-id',
+    LOAD_BUTTON: 'btn-load-order',
+    COMPARE_BUTTON: 'btn-compare', // 算法对比按钮 ID
+    MESSAGE_AREA: 'message-area',
+
+    PLAY_BUTTON: 'btn-play',
+    PAUSE_BUTTON: 'btn-pause',
+    STEP_BUTTON: 'btn-step',
+    RESET_BUTTON: 'btn-reset',
+    SPEED_SELECT: 'speed'
+};
+// -----------------------------------------------------------
+
 // 内存管理相关数据和逻辑 (对应 MemoryVO 和 MemoryController)
 let memoryManager = {
     // 仅保留获取状态的 API 地址，与后端 MemoryController 对应
@@ -917,328 +961,695 @@ function renderAlgorithmComparisonChart() {
         }
     });
 }
-// 路径规划相关变量
-let requestPositions = [];
-let warehouseData = {};
-let lastSchedule = null;
-let animation = {
-    points: [],
-    progressIndex: 0,
-    min: 0,
-    max: 0,
-    interval: null,
-    speed: 1
-};
 
-// 路径规划API接口配置
-const pathPlanningApi = {
-    warehouse: `${API_BASE}/warehouse`,
-    random: `${API_BASE}/requests/random`,
-    schedule: `${API_BASE}/schedule`
-};
 
-// 初始化路径规划页面
-function initPathPlanning() {
-    // 加载仓库数据
-    loadWarehouse();
+// ===================================================================
+// 2. 辅助函数 (el, DOM 操作)
+// ===================================================================
 
-    // 绑定按钮事件
-    $('#btn-generate').click(generateRequests);
-    $('#btn-run').click(runSchedule);
-    $('#btn-play').click(playAnimation);
-    $('#btn-pause').click(pauseAnimation);
-    $('#btn-step').click(stepAnimation);
-    $('#btn-reset').click(resetAnimation);
-    $('#btn-compare').click(runCompare);
-    $('#speed').change(function() {
-        animation.speed = parseFloat($(this).val());
-        if (animation.interval) {
-            pauseAnimation();
-            playAnimation();
-        }
-    });
-}
-
-// 工具函数：获取DOM元素
 function el(id) {
     return document.getElementById(id);
 }
 
-// 清除路径显示
-function clearLane(lane) {
-    while (lane.firstChild) {
-        if (!lane.firstChild.classList.contains('tick') && !lane.firstChild.classList.contains('tick-label')) {
-            lane.removeChild(lane.firstChild);
-        } else {
-            lane.removeChild(lane.firstChild);
-        }
+function showMessage(text, isSuccess) {
+    const msgArea = $(`#${ELEMENT_IDS.MESSAGE_AREA}`);
+    if (!msgArea.length) return;
+    const className = isSuccess ? 'alert-success' : 'alert-danger';
+    msgArea.html(`<div class="alert ${className}" role="alert">${text}</div>`);
+    setTimeout(() => { msgArea.empty(); }, 4000);
+}
+
+// ------------------- 可视化辅助函数 -------------------
+
+function clearLane(laneId) {
+    const lane = el(laneId);
+    if (lane) {
+        // 🔹 优化容器尺寸与风格（更小、更干净）
+        lane.innerHTML = `
+<div class="lane-title font-semibold text-gray-700 mb-1">
+    ${laneId === ELEMENT_IDS.WAREHOUSE_LANE ? '仓库分布 (0-100)' : laneId === ELEMENT_IDS.REQUEST_LANE ? '请求位置' : '调度路径'}
+</div>
+<div class="lane-visualization" style="
+    position: relative;
+    height: 90px;
+    background-color: #f1f3f5;
+    border-radius: 6px;
+    margin-top: 4px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+    overflow: hidden;">
+    <div style="
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1.5px;
+        background-color: #adb5bd;
+        z-index: 5;"></div>
+</div>`;
     }
 }
 
-// 计算边界
-function laneBounds(positions) {
-    if (positions.length === 0) return { min: 0, max: 10 };
-    return {
-        min: Math.min(...positions),
-        max: Math.max(...positions)
-    };
-}
-
-// 绘制刻度
 function drawTicks(lane, min, max) {
-    const width = lane.clientWidth - 16;
-    const ticks = 10;
-    const step = (max - min) / ticks;
-
-    for (let i = 0; i <= ticks; i++) {
-        const value = min + (step * i);
-        const x = 8 + (i / ticks) * width;
-
-        const tick = document.createElement('div');
-        tick.className = 'tick';
-        tick.style.left = `${x}px`;
-        lane.appendChild(tick);
-
-        const label = document.createElement('div');
-        label.className = 'tick-label';
-        label.style.left = `${x}px`;
-        label.textContent = Math.round(value);
-        lane.appendChild(label);
+    const vizContainer = $(lane).find('.lane-visualization');
+    if (vizContainer.length === 0) {
+        clearLane($(lane).attr('id'));
     }
+    // (刻度线逻辑略)
 }
 
-// 绘制点
-function drawPoints(lane, positions, min, max, color) {
-    const width = lane.clientWidth - 16;
-    positions.forEach(pos => {
-        const ratio = (pos - min) / (max - min || 1);
-        const x = 8 + (ratio * width);
+const VISUAL_PADDING_PERCENT = 3; // 左右边距更紧凑
 
-        const point = document.createElement('div');
-        point.className = 'point';
-        point.style.left = `${x}px`;
-        point.style.backgroundColor = color;
-        lane.appendChild(point);
+function positionToPercent(pos) {
+    const clampedPos = Math.max(0, Math.min(pos, WAREHOUSE_MAX_CAPACITY));
+    const visualRange = 100 - 2 * VISUAL_PADDING_PERCENT;
+    const scaledPos = (clampedPos / WAREHOUSE_MAX_CAPACITY) * visualRange;
+    const finalPercent = VISUAL_PADDING_PERCENT + scaledPos;
+    return finalPercent + '%';
+}
 
-        const label = document.createElement('div');
-        label.className = 'point label';
-        label.style.left = `${x}px`;
-        label.textContent = pos;
-        lane.appendChild(label);
+/**
+ * 绘制位置点，自动错开重叠
+ */
+function drawPositionPoint(lane, pos, color, label, showLabelBelow = false, overlapIndex = 0) {
+    const vizContainer = $(lane).find('.lane-visualization');
+    if (vizContainer.length === 0) return;
+
+    // 🔹 优化垂直偏移逻辑，自动交错，间距更紧凑
+    const VERTICAL_OFFSET_INCREMENT = 24;
+    const isUp = overlapIndex % 2 === 0;
+    const step = Math.floor(overlapIndex / 2);
+    const totalOffset = isUp ? -step * VERTICAL_OFFSET_INCREMENT : step * VERTICAL_OFFSET_INCREMENT;
+    const pointTopPos = `calc(50% + ${totalOffset}px)`;
+
+    // 绘制点
+    const pointDiv = document.createElement('div');
+    pointDiv.className = 'point drawn-point';
+    pointDiv.title = label;
+    pointDiv.textContent = pos;
+
+    $(pointDiv).css({
+        position: 'absolute',
+        left: positionToPercent(pos),
+        top: pointTopPos,
+        transform: 'translate(-50%, -50%)',
+        padding: '4px 8px',
+        fontSize: '12px',
+        fontWeight: '600',
+        borderRadius: '10px',
+        backgroundColor: color,
+        color: 'white',
+        zIndex: '20',
+        minWidth: '30px',
+        textAlign: 'center',
+        boxShadow: `0 2px 4px rgba(0,0,0,0.15), 0 0 0 1.5px ${color}`
     });
-}
 
-// 加载仓库数据
-async function loadWarehouse() {
-    try {
-        const res = await fetch(pathPlanningApi.warehouse);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        warehouseData = await res.json();
-        const positions = Object.keys(warehouseData).map(Number);
-        const lane = el('warehouse');
-        clearLane(lane);
-        const { min, max } = laneBounds(positions);
-        drawTicks(lane, min, max);
-        drawPoints(lane, positions, min, max, '#888');
-    } catch (error) {
-        console.error("加载仓库数据失败:", error);
-    }
-}
+    vizContainer.append(pointDiv);
 
-// 生成随机请求
-async function generateRequests() {
-    try {
-        const count = Number(el('count').value || 6);
-        const res = await fetch(`${pathPlanningApi.random}?count=${count}`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        requestPositions = await res.json();
-        const lane = el('requests');
-        clearLane(lane);
-        const { min, max } = laneBounds(requestPositions);
-        drawTicks(lane, min, max);
-        drawPoints(lane, requestPositions, min, max, '#888');
-    } catch (error) {
-        console.error("生成请求失败:", error);
-    }
-}
+    // 绘制标签（仓库使用）
+    if (showLabelBelow) {
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'point-label';
+        labelDiv.textContent = label;
+        const LABEL_OFFSET_FROM_POINT_CENTER = 22;
+        const labelTopPos = `calc(${pointTopPos} + ${LABEL_OFFSET_FROM_POINT_CENTER}px)`;
 
-// 运行调度
-async function runSchedule() {
-    try {
-        const algorithm = el('algorithm').value;
-        el('alg-label').textContent = algorithm;
-        const initial = Number(el('initial').value || 0);
-
-        const res = await fetch(`${pathPlanningApi.schedule}?algorithm=${algorithm}&initialPosition=${initial}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestPositions)
+        $(labelDiv).css({
+            position: 'absolute',
+            left: positionToPercent(pos),
+            top: labelTopPos,
+            transform: 'translateX(-50%)',
+            fontSize: '9px',
+            color: '#6c757d',
+            whiteSpace: 'nowrap',
+            zIndex: '15'
         });
 
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-
-        const lane = el('path');
-        clearLane(lane);
-        const positions = [...requestPositions, initial];
-        const { min, max } = laneBounds(positions);
-        drawTicks(lane, min, max);
-        drawPoints(lane, requestPositions, min, max, '#888');
-
-        // 保存并展示关键信息
-        lastSchedule = { data, initial, min, max };
-        updateScheduleInfo(lastSchedule);
-    } catch (error) {
-        console.error("运行调度失败:", error);
+        vizContainer.append(labelDiv);
     }
 }
 
-// 更新调度信息显示
-function updateScheduleInfo(schedule) {
-    const { data, initial, min, max } = schedule;
-    const endPos = (data.processedOrder && data.processedOrder.length)
-        ? data.processedOrder[data.processedOrder.length - 1]
-        : initial;
+/**
+ * 绘制路径线段 (动画)
+ */
+function drawPathSegments(lane, initialPos, processedOrder, currentStep) {
+    const vizContainer = $(lane).find('.lane-visualization');
+    if (vizContainer.length === 0) return;
 
-    el('info-start').textContent = String(initial);
-    el('info-end').textContent = String(endPos);
-    el('info-distance').textContent = String(data.totalDistance);
+    const fullPath = [initialPos, ...processedOrder];
+    const PATH_LINE_Y_POS = '50%';
+    const PATH_LINE_HEIGHT = '3px';
 
-    // 估算时间
-    const lane = el('path');
-    const basePixelsPerSec = 120, widthPx = lane.clientWidth;
-    const spanPx = Math.max(1, widthPx - 16);
-    const domain = Math.max(1, max - min);
-    const pixelsPerUnit = spanPx / domain;
-    const px = (data.totalDistance || 0) * pixelsPerUnit;
-    const seconds = px / basePixelsPerSec;
-    el('info-time').textContent = `${seconds.toFixed(2)} s (1x)`;
+    // 路径线 - 使用马卡龙蓝
+    for (let i = 1; i <= currentStep && i < fullPath.length; i++) {
+        const startPos = fullPath[i - 1];
+        const endPos = fullPath[i];
+        const startPercent = parseFloat(positionToPercent(Math.min(startPos, endPos)));
+        const endPercent = parseFloat(positionToPercent(Math.max(startPos, endPos)));
+        const lengthPercent = endPercent - startPercent;
 
-    // 显示结果详情
-    el('result').textContent = [
-        `算法: ${data.algorithmName}`,
-        `处理顺序: ${JSON.stringify(data.processedOrder)}`,
-        `每步距离: ${JSON.stringify(data.stepDistances)}`,
-        `总距离: ${data.totalDistance}`,
-        ...(data.stepDetails || [])
-    ].join('\n');
+        const segmentDiv = document.createElement('div');
+        segmentDiv.className = 'path-segment-drawn';
+        $(segmentDiv).css({
+            position: 'absolute',
+            left: startPercent + '%',
+            width: lengthPercent + '%',
+            top: `calc(${PATH_LINE_Y_POS} - ${parseInt(PATH_LINE_HEIGHT) / 2}px)`,
+            height: PATH_LINE_HEIGHT,
+            backgroundColor: 'var(--macaron-blue)', // 马卡龙蓝
+            borderRadius: '2px',
+            boxShadow: '0 0 4px rgba(168, 218, 220, 0.8)',
+            zIndex: '10',
+            opacity: '1'
+        });
+        vizContainer.append(segmentDiv);
+    }
+
+    // 标记已完成点 - 使用马卡龙绿深色
+    for (let i = 1; i <= currentStep && i < fullPath.length; i++) {
+        const completedPos = fullPath[i];
+        const endPointDiv = document.createElement('div');
+        endPointDiv.className = 'point drawn-point-path';
+        endPointDiv.title = `已拿取 ${completedPos}`;
+        endPointDiv.textContent = completedPos;
+
+        $(endPointDiv).css({
+            position: 'absolute',
+            left: positionToPercent(completedPos),
+            transform: 'translate(-50%, -50%)',
+            top: PATH_LINE_Y_POS,
+            padding: '8px',
+            fontSize: '13px',
+            fontWeight: 'bold',
+            borderRadius: '50%',
+            backgroundColor: 'var(--macaron-green-dark)', // 马卡龙绿深色
+            color: 'white',
+            zIndex: '30',
+            minWidth: '34px',
+            textAlign: 'center',
+            boxShadow: '0 0 8px rgba(79, 101, 80, 0.7), inset 0 0 4px white'
+        });
+        vizContainer.append(endPointDiv);
+    }
 }
 
-// 动画控制函数
+
+// ===================================================================
+// 3. 动画和调度控制逻辑
+// ===================================================================
+
+/**
+ * 获取当前选择的算法结果
+ */
+function getCurrentSchedulerResult() {
+    if (!orderScheduleResult || !orderScheduleResult.algorithmResults) return null;
+    return orderScheduleResult.algorithmResults[currentAlgorithm];
+}
+
+/**
+ * 渲染路径的特定步骤
+ */
+function renderPathStep(currentResult, step) {
+    const lane = el(ELEMENT_IDS.PATH_LANE);
+    if (!lane || !currentResult.processedOrder) return;
+
+// 清空并重建容器
+    clearLane(ELEMENT_IDS.PATH_LANE);
+    const updatedVizContainer = $(el(ELEMENT_IDS.PATH_LANE)).find('.lane-visualization');
+
+    const processedOrder = currentResult.processedOrder;
+// 仓库机械臂的初始位置固定为 0
+    const initialPos = 0;
+
+    drawTicks(lane, 0, WAREHOUSE_MAX_CAPACITY);
+
+// 1. 绘制路径线段和已完成的点
+    drawPathSegments(lane, initialPos, processedOrder, step);
+
+// 2. 确定当前机械臂位置
+    const currentPath = [initialPos, ...processedOrder];
+    const currentRobotPos = currentPath[step] || initialPos; // 确保在 step 0 时是 initialPos
+
+// 3. 绘制机械臂当前位置 (马卡龙粉深色)
+    const robotPointDiv = document.createElement('div');
+    robotPointDiv.className = 'point drawn-robot';
+    robotPointDiv.title = '机械臂当前位置';
+    robotPointDiv.textContent = currentRobotPos;
+
+    // 机械臂头部样式优化：更突出，使用马卡龙粉深色
+    $(robotPointDiv).css({
+        position: 'absolute',
+        left: positionToPercent(currentRobotPos),
+        transform: 'translateX(-50%)',
+        top: '10px', // 保持在上方，避开中心线和路径
+        padding: '8px 16px',
+        fontSize: '20px',
+        fontWeight: '700',
+        borderRadius: '50% / 10%', // 特殊的圆角/椭圆形状
+        backgroundColor: 'var(--macaron-pink-dark)', // 马卡龙粉深色
+        color: 'white',
+        zIndex: '60', // 最高的 Z-Index
+        // 增加马卡龙粉色光晕阴影
+        boxShadow: '0 0 15px rgba(214, 73, 51, 0.8), 0 4px 8px rgba(0,0,0,0.4)',
+        // 启用过渡，移动时更平滑
+        transition: 'left 0.5s ease-out',
+    });
+    updatedVizContainer.append(robotPointDiv);
+
+// 4. 更新调度信息
+    const totalDistanceCovered = currentResult.stepDistances
+        .slice(0, step)
+        .reduce((sum, dist) => sum + dist, 0);
+
+// 确保 stepDetails 在 step 0 时不越界
+    const latestAction = (step > 0 && currentResult.stepDetails && currentResult.stepDetails[step - 1])
+        ? currentResult.stepDetails[step - 1]
+        : '等待指令';
+
+    el(ELEMENT_IDS.ALGORITHM_LABEL).textContent = currentResult.algorithmName;
+    el(ELEMENT_IDS.INIT_POS).textContent = initialPos;
+    el(ELEMENT_IDS.END_POS).textContent = currentRobotPos;
+    el(ELEMENT_IDS.TOTAL_DISTANCE).textContent = totalDistanceCovered;
+
+// 5. 更新结果面板 (显示动态路径)
+    const currentOrderSequence = currentPath.slice(0, step + 1);
+    const resultPanel = el(ELEMENT_IDS.RESULT_PANEL);
+    if (resultPanel) {
+        resultPanel.innerHTML = `
+<p><strong>当前路径:</strong> ${currentOrderSequence.join(' → ')}</p>
+<p><strong>当前总距离:</strong> ${totalDistanceCovered}</p>
+<p><strong>最新动作:</strong> ${latestAction}</p>
+`;
+    }
+}
+
+/**
+ * 动画控制：播放/继续
+ */
 function playAnimation() {
-    if (!lastSchedule || animation.interval) return;
+    if (isPlaying || !orderScheduleResult) return;
+    isPlaying = true;
 
-    animation = {
-        ...lastSchedule,
-        progressIndex: 0,
-        interval: setInterval(() => {
-            stepAnimation();
-        }, 1000 / animation.speed)
-    };
-}
-
-function pauseAnimation() {
-    if (animation.interval) {
-        clearInterval(animation.interval);
-        animation.interval = null;
-    }
-}
-
-function stepAnimation() {
-    if (!lastSchedule) return;
-
-    const lane = el('path');
-    const head = document.getElementById('anim-head') || document.createElement('div');
-    if (!document.getElementById('anim-head')) {
-        head.id = 'anim-head';
-        head.className = 'head';
-        lane.appendChild(head);
-    }
-
-    const { data, min, max } = lastSchedule;
-    if (!data.processedOrder || animation.progressIndex >= data.processedOrder.length - 1) {
-        pauseAnimation();
+    const result = getCurrentSchedulerResult();
+    if (!result) {
+        showMessage('请选择一个有效的算法或加载订单数据！', false);
+        isPlaying = false;
         return;
     }
 
-    const width = lane.clientWidth;
-    const from = animation.progressIndex === 0 ? lastSchedule.initial : data.processedOrder[animation.progressIndex - 1];
-    const to = data.processedOrder[animation.progressIndex];
+    const maxSteps = result.processedOrder.length;
 
-    const xFrom = 8 + ((from - min) / (max - min || 1)) * (width - 16);
-    const xTo = 8 + ((to - min) / (max - min || 1)) * (width - 16);
+    if (currentStep >= maxSteps) {
+        currentStep = 0; // 重头开始
+    }
 
-    head.style.left = `${xTo}px`;
+// 禁用 Play 按钮，启用 Pause 按钮
+    el(ELEMENT_IDS.PLAY_BUTTON).disabled = true;
+    el(ELEMENT_IDS.PAUSE_BUTTON).disabled = false;
 
-    const seg = document.createElement('div');
-    seg.className = 'seg';
-    seg.style.left = `${Math.min(xFrom, xTo)}px`;
-    seg.style.width = `${Math.abs(xTo - xFrom)}px`;
-    lane.appendChild(seg);
-
-    animation.progressIndex++;
-}
-
-function resetAnimation() {
-    pauseAnimation();
-    const lane = el('path');
-    const head = document.getElementById('anim-head');
-    if (head) lane.removeChild(head);
-    document.querySelectorAll('.seg').forEach(seg => seg.remove());
-    animation.progressIndex = 0;
-}
-
-// 算法对比
-async function runCompare() {
-    try {
-        const initial = Number(el('initial').value || 0);
-        const body = el('comparison-results');
-        body.innerHTML = '';
-        const algos = ['FCFS', 'SSTF', 'SCAN'];
-
-        const requests = requestPositions;
-        if (requests.length === 0) {
-            alert('请先生成请求位置');
-            return;
+    animationInterval = setInterval(() => {
+        if (currentStep < maxSteps) {
+            currentStep++;
+            renderPathStep(result, currentStep);
+        } else {
+            pauseAnimation();
+            renderSchedulerResultStatic(result); // 播放完毕显示最终结果
         }
+    }, animationSpeed);
+}
 
-        // 并行请求三种算法结果
-        const calls = algos.map(algo =>
-            fetch(`${pathPlanningApi.schedule}?algorithm=${algo}&initialPosition=${initial}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requests)
-            }).then(r => r.json().then(data => ({ algo, data })))
-        );
+/**
+ * 动画控制：暂停
+ */
+function pauseAnimation() {
+    if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+    }
+    isPlaying = false;
+// 启用 Play 按钮，禁用 Pause 按钮
+    el(ELEMENT_IDS.PLAY_BUTTON).disabled = false;
+    el(ELEMENT_IDS.PAUSE_BUTTON).disabled = true;
+}
 
-        const results = await Promise.all(calls);
-        const positions = [...requests, initial];
-        const { min, max } = laneBounds(positions);
-        const lane = el('path');
-        const spanPx = Math.max(1, lane.clientWidth - 16);
-        const domain = Math.max(1, max - min);
-        const pixelsPerUnit = spanPx / domain;
-        const basePixelsPerSec = 120;
+/**
+ * 动画控制：单步执行
+ */
+function stepAnimation() {
+    pauseAnimation(); // 确保暂停
+    const result = getCurrentSchedulerResult();
+    if (!result || !result.processedOrder) return;
 
-        // 显示对比结果
-        results.forEach(({ algo, data }) => {
-            const endPos = (data.processedOrder && data.processedOrder.length)
-                ? data.processedOrder[data.processedOrder.length - 1]
-                : initial;
-            const px = (data.totalDistance || 0) * pixelsPerUnit;
-            const sec = px / basePixelsPerSec;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${algo}</td>
-                <td>${JSON.stringify(data.processedOrder)}</td>
-                <td>${data.totalDistance}</td>
-                <td>${endPos}</td>
-                <td>${sec.toFixed(2)}s</td>
-            `;
-            body.appendChild(tr);
-        });
-    } catch (error) {
-        console.error("算法对比失败:", error);
+    const maxSteps = result.processedOrder.length;
+    if (currentStep < maxSteps) {
+        currentStep++;
+        renderPathStep(result, currentStep);
+    } else {
+        renderSchedulerResultStatic(result);
     }
 }
+
+/**
+ * 动画控制：重置
+ */
+function resetAnimation() {
+    pauseAnimation();
+    currentStep = 0;
+    const result = getCurrentSchedulerResult();
+    if (result) {
+        renderPathStep(result, currentStep); // 渲染到初始位置 0
+        renderSchedulerResultStatic(result); // 显示最终结果（总距离、顺序等）
+    }
+}
+
+/**
+ * 渲染最终的静态结果（通常用于动画结束或重置后）
+ */
+function renderSchedulerResultStatic(result) {
+    if (!result) return;
+
+    const resultPanel = el(ELEMENT_IDS.RESULT_PANEL);
+    if (resultPanel) {
+// 总移动距离，显示最终结果的距离
+        const finalDistance = result.totalDistance;
+
+// 步骤详情列表
+        const detailsList = result.stepDetails && result.stepDetails.length > 0
+            ? `<ul class="list-disc list-inside space-y-1 mt-2">${result.stepDetails.map(d => `<li class="text-sm text-gray-700">${d}</li>`).join('')}</ul>`
+            : '<p class="text-sm text-gray-500">暂无详细步骤。</p>';
+
+        resultPanel.innerHTML = `
+<p><strong>最终处理顺序:</strong> <span class="text-indigo-600 font-mono">${[0, ...result.processedOrder].join(' → ')}</span></p>
+<p><strong>总移动距离:</strong> <span class="text-green-600 font-bold">${finalDistance}</span></p>
+<h4 class="font-semibold mt-3 mb-1 text-base border-b pb-1">算法详情</h4>
+${detailsList}
+`;
+    }
+}
+
+/**
+ * 绘制静态区域（仓库分布和请求队列）
+ */
+function drawStaticVisualizations(scheduleResult) {
+    const warehouseLane = el(ELEMENT_IDS.WAREHOUSE_LANE);
+    const requestLane = el(ELEMENT_IDS.REQUEST_LANE);
+
+// 默认使用 FCFS 的结果来获取仓库和请求点数据
+    const result = scheduleResult.algorithmResults['FCFS'];
+
+    clearLane(ELEMENT_IDS.WAREHOUSE_LANE);
+    clearLane(ELEMENT_IDS.REQUEST_LANE);
+
+    drawTicks(warehouseLane, 0, WAREHOUSE_MAX_CAPACITY);
+    drawTicks(requestLane, 0, WAREHOUSE_MAX_CAPACITY);
+
+    const warehouseOverlapMap = {}; // 存储 {position: count}
+    const requestOverlapMap = {}; // 存储 {position: count}
+
+// 绘制仓库所有食材点 (马卡龙绿)
+    Object.entries(result.warehouseIngredients).forEach(([posStr, label]) => {
+        const pos = parseInt(posStr);
+        const overlapCount = warehouseOverlapMap[pos] || 0;
+
+// 绘制点，使用马卡龙绿
+        drawPositionPoint(warehouseLane, pos, 'var(--macaron-green)', label, true, overlapCount);
+
+// 更新重叠计数器
+        warehouseOverlapMap[pos] = overlapCount + 1;
+    });
+
+// 绘制原始请求队列点 (马卡龙橙)
+    result.requestedPositions.forEach(pos => { // 使用 requestedPositions 来获取原始请求队列
+        const overlapCount = requestOverlapMap[pos] || 0;
+
+// 绘制点，使用马卡龙橙
+        drawPositionPoint(requestLane, pos, 'var(--macaron-orange)', `请求: ${pos}`, false, overlapCount);
+
+// 更新重叠计数器
+        requestOverlapMap[pos] = overlapCount + 1;
+    });
+
+    if (scheduleResult.dishName && el(ELEMENT_IDS.DISH_NAME)) {
+        el(ELEMENT_IDS.DISH_NAME).textContent = scheduleResult.dishName;
+    }
+}
+
+/**
+ * 核心：加载和处理订单数据
+ */
+function loadOrderData(orderId) {
+    const API_URL = `${API_BASE}/order-scheduler/${orderId}`;
+    showMessage(`正在加载订单 ${orderId} 并运行调度算法...`, false);
+    $.ajax({
+        url: API_URL,
+        method: 'GET',
+        success: function(response) {
+            orderScheduleResult = response;
+            // ==========================================================
+            // 【新增/修改】：确保算法选择框被填充和 currentAlgorithm 初始化
+            // ==========================================================
+            const algSelect = el(ELEMENT_IDS.ALGORITHM_SELECT);
+            if (algSelect) {
+                $(algSelect).empty(); // 清空旧选项
+                const algorithms = Object.keys(orderScheduleResult.algorithmResults);
+
+                algorithms.forEach(algKey => {
+                    const result = orderScheduleResult.algorithmResults[algKey];
+                    // 假设 Option 的 value 是算法的 key，text 是算法的 Name
+                    $(algSelect).append(new Option(result.algorithmName, algKey));
+                });
+
+                // 设置默认选中的算法，确保 currentAlgorithm 有值
+                // 默认选择 FCFS，如果不存在则选择列表第一个
+                currentAlgorithm = algorithms.includes('FCFS') ? 'FCFS' : algorithms[0];
+                $(algSelect).val(currentAlgorithm); // 更新选择框的值
+            } else {
+                currentAlgorithm = 'FCFS'; // 如果没有选择框，默认使用 FCFS
+            }
+            // 【FIX 1: 确保原始请求队列数据存在】
+            const fcfsResult = orderScheduleResult.algorithmResults['FCFS'];
+            if (fcfsResult) {
+                if (!fcfsResult.requestedPositions && fcfsResult.processedOrder) {
+                    // 临时兼容：如果后端未提供 requestedPositions，则使用 processedOrder 中的点
+                    orderScheduleResult.algorithmResults['FCFS'].requestedPositions = [...fcfsResult.processedOrder];
+                }
+                if (!fcfsResult.requestedPositions) {
+                    // 确保它至少是一个空数组，防止 forEach 报错
+                    orderScheduleResult.algorithmResults['FCFS'].requestedPositions = [];
+                }
+            }
+
+            drawStaticVisualizations(orderScheduleResult);
+            resetAnimation();
+
+            // 【FIX 2: 确保算法对比表格首次渲染】
+            // *重要：在数据加载成功后，必须调用一次渲染函数来填充对比表格。
+            renderAlgorithmComparison();
+
+            // ... (其他原有逻辑)
+            drawStaticVisualizations(orderScheduleResult);
+            resetAnimation();
+
+
+            showMessage(`订单 ${orderId} 调度成功！`, true);
+        },
+
+        error: function(xhr, status, error) {
+
+// 如果返回的是 4xx/5xx 错误，且 body 是字符串，则显示 body
+
+            let errorText = error;
+
+            if (xhr.responseText) {
+
+// 尝试解析后端返回的错误信息（可能是纯文本或JSON）
+
+                try {
+
+                    const jsonResponse = JSON.parse(xhr.responseText);
+
+// 假设后端返回的错误信息在 reason 或 message 字段
+
+                    errorText = jsonResponse.reason || jsonResponse.message || xhr.responseText;
+
+                } catch (e) {
+
+                    errorText = xhr.responseText; // 如果不是JSON，就用原始文本
+
+                }
+
+            } else if (xhr.status === 404) {
+
+                errorText = '找不到订单调度服务接口 (404)。请检查后端路径是否为 /api/order-scheduler/{id}';
+
+            }
+
+            showMessage(`加载订单失败 (${xhr.status}): ${errorText}`, false);
+
+            orderScheduleResult = null;
+
+        }
+
+    });
+
+}
+
+function renderAlgorithmComparison() {
+
+// 检查 orderScheduleResult 是否已加载
+
+    if (!orderScheduleResult || !orderScheduleResult.algorithmResults) return;
+
+    const tableBody = $('#comparison-results');
+    tableBody.empty(); // 清空原有内容
+
+    const algorithms = orderScheduleResult.algorithmResults;
+    Object.values(algorithms).forEach(result => {
+
+// 检查算法是否执行成功
+
+        if (result.totalDistance === -1) {
+
+            const errorRow = `
+<tr class="table-warning">
+<td>${result.algorithmName}</td>
+<td colspan="3">算法执行失败：${result.errorMsg || '请检查后端服务日志'}</td>
+</tr>
+`;
+
+            tableBody.append(errorRow);
+
+            return;
+
+        }
+
+        const endPos = result.processedOrder && result.processedOrder.length > 0
+            ? result.processedOrder.at(-1) // 获取最后一个元素作为结束位置
+            : 'N/A';
+        const row = `
+<tr class="hover:bg-gray-50 transition-colors duration-150">
+<td class="font-semibold">${result.algorithmName}</td>
+<td><span class="font-mono text-sm text-indigo-600">${[0, ...result.processedOrder].join(' → ')}</span></td>
+<td><span class="font-bold text-lg text-green-700">${result.totalDistance}</span></td>
+<td>${endPos}</td>
+</tr>
+`;
+        tableBody.append(row);
+    });
+
+}
+
+/**
+ * 显示算法对比（触发渲染并高亮最优算法）
+ */
+function showAlgorithmComparison() {
+    if (!orderScheduleResult) {
+        showMessage('请先通过订单ID加载数据！', false);
+        return;
+    }
+
+// 1. 渲染表格 (确保最新数据已渲染)
+    renderAlgorithmComparison();
+
+    const algorithms = orderScheduleResult.algorithmResults;
+    if (!algorithms) return;
+
+// 2. 找到总距离最小的算法（最优），排除失败的 (-1)
+    let optimalAlg = null;
+    let minDistance = Infinity;
+    Object.values(algorithms).forEach(result => {
+        if (result.totalDistance >= 0 && result.totalDistance < minDistance) {
+            minDistance = result.totalDistance;
+            optimalAlg = result;
+        }
+    });
+
+// 3. 高亮最优算法行 - 使用马卡龙绿浅色
+    $('#comparison-results tr').each(function(index, row) {
+// 假设算法名称在第一列
+        const algName = $(row).find('td:first').text();
+        if (optimalAlg && algName === optimalAlg.algorithmName) {
+            // 使用马卡龙绿浅色高亮
+            $(row).removeClass('hover:bg-gray-50').addClass('bg-macaron-green/20 table-success border-l-4 border-macaron-green-dark');
+        } else {
+            $(row).removeClass('bg-macaron-green/20 table-success border-l-4 border-macaron-green-dark').addClass('hover:bg-gray-50');
+        }
+    });
+
+    if (optimalAlg) {
+        showMessage(`最优算法：${optimalAlg.algorithmName}（总距离${optimalAlg.totalDistance}）`, true);
+    } else {
+// 如果所有算法都失败或数据异常
+        showMessage(`没有找到有效的算法结果进行对比。`, false);
+    }
+
+}
+
+// ===================================================================
+// 5. 初始化和事件绑定
+// ===================================================================
+
+/**
+ * 路径规划模块的初始化和事件绑定
+ */
+function initPathPlanning() {
+
+// 默认展示
+    clearLane(ELEMENT_IDS.WAREHOUSE_LANE);
+    clearLane(ELEMENT_IDS.REQUEST_LANE);
+    clearLane(ELEMENT_IDS.PATH_LANE);
+
+// 绑定加载按钮
+    $(document).on('click', `#${ELEMENT_IDS.LOAD_BUTTON}`, function() {
+        const orderId = el(ELEMENT_IDS.ORDER_ID_INPUT).value;
+        if (orderId) {
+            loadOrderData(orderId);
+        } else {
+            showMessage('请输入订单ID!', false);
+        }
+    });
+
+// 绑定算法对比按钮
+    $(document).on('click', `#${ELEMENT_IDS.COMPARE_BUTTON}`, showAlgorithmComparison);
+
+// 绑定动画控制
+    $(document).on('click', `#${ELEMENT_IDS.PLAY_BUTTON}`, playAnimation);
+    $(document).on('click', `#${ELEMENT_IDS.PAUSE_BUTTON}`, pauseAnimation);
+    $(document).on('click', `#${ELEMENT_IDS.STEP_BUTTON}`, stepAnimation);
+    $(document).on('click', `#${ELEMENT_IDS.RESET_BUTTON}`, resetAnimation);
+    // 绑定算法选择
+    $(document).on('change', `#${ELEMENT_IDS.ALGORITHM_SELECT}`, function() {
+        currentAlgorithm = $(this).val(); // 更新 currentAlgorithm
+
+        // 【修改】：暂停当前动画并重置路径显示
+        // 动画控制逻辑应该优先处理
+        pauseAnimation(); // 确保暂停，防止干扰
+        currentStep = 0;
+
+        const result = getCurrentSchedulerResult();
+        if (result) {
+            renderPathStep(result, currentStep);        // 重新绘制路径图
+            renderSchedulerResultStatic(result);     // 重新渲染底下的结果面板
+        }
+
+        // 表格是所有算法的对比
+        renderAlgorithmComparison(); // <--- 确保对比表格不为空
+    });
+
+// 绑定速度选择
+    $(document).on('change', `#${ELEMENT_IDS.SPEED_SELECT}`, function() {
+        animationSpeed = parseInt($(this).val());
+        if (isPlaying) {
+            pauseAnimation();
+            playAnimation();
+        }
+    });
+
+    console.log('路径规划模块已初始化');
+
+}
+
+// 页面加载完成后，启动初始化
+$(document).ready(function() {
+    initPathPlanning();
+});

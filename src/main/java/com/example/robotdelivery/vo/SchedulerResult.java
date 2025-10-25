@@ -59,5 +59,12 @@ public class SchedulerResult {
     public Map<Integer, String> getWarehouseIngredients() {
         return warehouseIngredients;
     }
+
+    public void setErrorMsg(String errorMsg) {
+
+    }
+
+    public void setAlgorithm(String algorithm) {
+    }
 }
 
